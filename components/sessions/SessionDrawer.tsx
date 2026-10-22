@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getLiveProducts } from "@/lib/supabase/service";
 
 interface Props {
   table: ClubTable | null;
@@ -36,6 +37,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
   const [phone, setPhone] = useState("");
   const [editableRate, setEditableRate] = useState<number>(table?.hourly_rate ?? 350);
   const [isEditingRate, setIsEditingRate] = useState(false);
+  const [liveProducts, setLiveProducts] = useState<Product[]>(mockProducts);
 
   // Active session lines & discounts
   const [lines, setLines] = useState<BillLine[]>([]);
@@ -52,6 +54,8 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
       setDiscount(0);
       setLines([]);
     }
+    // Fetch live products
+    getLiveProducts().then((prods) => setLiveProducts(prods));
   }, [table]);
 
   if (!table) return null;
@@ -154,6 +158,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
     const itemsTotal = lines.reduce((s, l) => s + l.product.price * l.qty, 0);
     const playCharge = table.bill ?? 0;
     const finalTotal = Math.max(0, playCharge + itemsTotal - discount);
+    const nowIso = new Date().toISOString();
 
     // Trigger local push & transaction chime
     if (typeof window !== "undefined") {
@@ -176,6 +181,29 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
     // Sync to Supabase
     try {
       const supabase = createClient();
+      const startMs = table.session_started_at ? new Date(table.session_started_at).getTime() : Date.now();
+      const durationMins = Math.max(1, Math.round((Date.now() - startMs) / 60000));
+
+      // 1. Complete session record
+      await supabase
+        .from("sessions")
+        .update({
+          ended_at: nowIso,
+          duration_minutes: durationMins,
+          table_amount: playCharge,
+          items_amount: itemsTotal,
+          discount_amount: discount,
+          discount_reason: discountReason || null,
+          final_total: finalTotal,
+          status: "completed",
+          paid: paymentMethod !== "udhar",
+          payment_method: paymentMethod,
+          updated_at: nowIso,
+        })
+        .eq("table_id", table.id)
+        .eq("status", "active");
+
+      // 2. Free the table
       await supabase
         .from("club_tables")
         .update({
@@ -183,7 +211,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
           current_player: null,
           current_phone: null,
           session_started_at: null,
-          updated_at: new Date().toISOString(),
+          updated_at: nowIso,
         })
         .eq("id", table.id);
     } catch (err) {
@@ -385,7 +413,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
           <ShoppingBag size={13} style={{ color: "var(--accent-primary)" }} />
           <span>F&amp;B Menu &amp; Snack Additions</span>
         </h3>
-        <ProductPicker products={mockProducts} onAdd={addProduct} />
+        <ProductPicker products={liveProducts} onAdd={addProduct} />
       </div>
 
       {/* Bill & Payment Settlement */}

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PoolTableCard } from "@/components/tables/PoolTableCard";
 import { SessionDrawer } from "@/components/sessions/SessionDrawer";
 import { RateManagementModal } from "@/components/modals/RateManagementModal";
 import { initialTables } from "@/lib/mock/tables";
 import type { ClubTable, TableStatus } from "@/lib/types";
 import { Sliders } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { getLiveTables, formatDurationFromStart, calculateAccruedBill } from "@/lib/supabase/service";
 
 const filters: ("all" | TableStatus)[] = [
   "all",
@@ -30,6 +32,57 @@ export default function LiveTables() {
   const [sel, setSel] = useState<ClubTable | null>(null);
   const [ratesModalOpen, setRatesModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Load real tables from Supabase on mount
+  useEffect(() => {
+    let mounted = true;
+
+    const loadData = async () => {
+      const live = await getLiveTables();
+      if (mounted) setTables(live);
+    };
+
+    loadData();
+
+    // Subscribe to realtime updates from Supabase
+    const supabase = createClient();
+    const channel = supabase
+      .channel("tables_page_sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "club_tables" },
+        () => {
+          loadData();
+        }
+      )
+      .subscribe();
+
+    const handleLocalUpdate = () => loadData();
+    window.addEventListener("levelup_floor_update", handleLocalUpdate);
+
+    // Live timer tick every second for playing tables
+    const interval = setInterval(() => {
+      setTables((prev) =>
+        prev.map((t) => {
+          if (t.status === "playing" && t.session_started_at) {
+            return {
+              ...t,
+              elapsed: formatDurationFromStart(t.session_started_at),
+              bill: calculateAccruedBill(t.session_started_at, t.hourly_rate, t.min_fee || 50),
+            };
+          }
+          return t;
+        })
+      );
+    }, 1000);
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+      window.removeEventListener("levelup_floor_update", handleLocalUpdate);
+      clearInterval(interval);
+    };
+  }, [refreshKey]);
 
   const list = tables.filter((t) => f === "all" || t.status === f);
 

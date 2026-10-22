@@ -156,7 +156,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <CircleDot size={13} style={{ color: "var(--accent-primary)" }} />
                     <span>Royal Table 1</span>
                   </div>
-                  <span className="badge" data-s="playing" style={{ fontSize: 10 }}>Playing · Aarav</span>
+                  <span className="badge" data-s="available" style={{ fontSize: 10 }}>VIP · ₹500/hr</span>
                 </Link>
                 <Link
                   href="/tables"
@@ -168,7 +168,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <CircleDot size={13} style={{ color: "var(--accent-primary)" }} />
                     <span>Snooker Table 1</span>
                   </div>
-                  <span className="badge" data-s="playing" style={{ fontSize: 10 }}>Playing · Dev</span>
+                  <span className="badge" data-s="available" style={{ fontSize: 10 }}>12ft · ₹350/hr</span>
                 </Link>
                 <Link
                   href="/products"
@@ -279,10 +279,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }}
                   >
                     <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
-                      Floor Alerts
+                      System Status
                     </span>
                     <span className="badge" style={{ fontSize: 10, padding: "2px 6px" }}>
-                      3 active
+                      Live
                     </span>
                   </div>
 
@@ -290,22 +290,22 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
                       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 6, flexShrink: 0 }} />
                       <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Royal Table 1 running &gt; 1h</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Aarav S. · ₹450 accrued</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
-                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--amber)", marginTop: 6, flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Snooker Table 1 order pending</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>2x Red Bull added to bill</div>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Supabase Realtime</div>
+                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Postgres stream connected</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
                       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 6, flexShrink: 0 }} />
                       <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Daily target 83% reached</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>₹14,850 recorded</div>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Audio & Push Alerts</div>
+                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Cue chime engine ready</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 6, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Fleet Ready</div>
+                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>5 tables available for play</div>
                       </div>
                     </div>
                   </div>

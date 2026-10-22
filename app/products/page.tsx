@@ -1,15 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { initialProducts } from "@/lib/mock/products";
 import type { Product } from "@/lib/types";
 import { Package, Coffee, Utensils, Sliders } from "lucide-react";
 import { ProductManagementModal } from "@/components/modals/ProductManagementModal";
+import { createClient } from "@/lib/supabase/client";
+import { getLiveProducts } from "@/lib/supabase/service";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("All");
+
+  useEffect(() => {
+    let mounted = true;
+    const loadProducts = async () => {
+      const live = await getLiveProducts();
+      if (mounted) setProducts(live);
+    };
+    loadProducts();
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("products_page_sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => {
+          loadProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const categories = ["All", "Drinks", "Snacks", "Other"];
   const filtered = products.filter(
@@ -27,16 +55,55 @@ export default function ProductsPage() {
     }
   };
 
-  const handleAddProduct = (newProd: Product) => {
+  const handleAddProduct = async (newProd: Product) => {
     setProducts((prev) => [newProd, ...prev]);
+    try {
+      const supabase = createClient();
+      await supabase.from("products").insert([
+        {
+          id: newProd.id,
+          name: newProd.name,
+          category: newProd.category,
+          price: newProd.price,
+          cost_price: newProd.cost_price || Math.round(newProd.price * 0.6),
+          active: newProd.active,
+          stock_count: newProd.stock_count || 50,
+        },
+      ]);
+    } catch (e) {
+      console.debug("Supabase insert product info:", e);
+    }
   };
 
-  const handleUpdateProduct = (updated: Product) => {
+  const handleUpdateProduct = async (updated: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    try {
+      const supabase = createClient();
+      await supabase
+        .from("products")
+        .update({
+          name: updated.name,
+          category: updated.category,
+          price: updated.price,
+          cost_price: updated.cost_price,
+          active: updated.active,
+          stock_count: updated.stock_count,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", updated.id);
+    } catch (e) {
+      console.debug("Supabase update product info:", e);
+    }
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
+    try {
+      const supabase = createClient();
+      await supabase.from("products").delete().eq("id", id);
+    } catch (e) {
+      console.debug("Supabase delete product info:", e);
+    }
   };
 
   return (
