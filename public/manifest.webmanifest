@@ -1,0 +1,50 @@
+{
+  "name": "LEVEL UP Club Management",
+  "short_name": "Level Up",
+  "description": "Real-time arena management, live table timers, and F&B billing for Level Up Pool & Snooker Club",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080B09",
+  "theme_color": "#00E676",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Arena Tables",
+      "short_name": "Tables",
+      "description": "Monitor and control the 5 floor tables",
+      "url": "/tables",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "F&B Products",
+      "short_name": "Products",
+      "description": "Manage food, drinks, and selling rates",
+      "url": "/products",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Revenue Reports",
+      "short_name": "Reports",
+      "description": "Shift telemetry and end-of-day ledger",
+      "url": "/reports",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}

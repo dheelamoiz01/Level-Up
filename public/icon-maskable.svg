@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="mGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00FF87" />
+      <stop offset="100%" stop-color="#00E676" />
+    </linearGradient>
+  </defs>
+  <!-- Full bleed for maskable -->
+  <rect width="512" height="512" fill="#080B09" />
+  <circle cx="256" cy="256" r="140" fill="#0D1611" stroke="#00E676" stroke-width="3" stroke-opacity="0.35" />
+  <g fill="url(#mGrad)">
+    <path d="M 186 195 L 210 195 L 210 295 L 255 295 L 255 318 L 186 318 Z" />
+    <path d="M 252 195 L 276 195 L 276 280 C 276 304 290 318 310 318 C 330 318 344 304 344 280 L 344 195 L 368 195 L 368 282 C 368 320 346 338 310 338 C 274 338 252 320 252 282 Z" />
+  </g>
+  <circle cx="350" cy="205" r="8" fill="#FFFFFF" opacity="0.9" />
+</svg>
