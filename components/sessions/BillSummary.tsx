@@ -115,7 +115,7 @@ export function BillSummary({
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
           <Tag size={13} style={{ color: "var(--accent-primary)" }} />
-          <span>Discount (Editable)</span>
+          <span>Discount</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

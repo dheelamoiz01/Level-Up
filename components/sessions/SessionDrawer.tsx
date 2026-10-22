@@ -21,6 +21,8 @@ import {
   Sliders,
   DollarSign,
   AlertCircle,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getLiveProducts } from "@/lib/supabase/service";
@@ -31,10 +33,17 @@ interface Props {
   onSessionUpdated?: () => void;
 }
 
+interface PlayerEntry {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
-  // Session creation fields
-  const [playerName, setPlayerName] = useState("");
-  const [phone, setPhone] = useState("");
+  // Multi-player session creation fields
+  const [players, setPlayers] = useState<PlayerEntry[]>([
+    { id: "p1", name: "", phone: "" },
+  ]);
   const [editableRate, setEditableRate] = useState<number>(table?.hourly_rate ?? 350);
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [liveProducts, setLiveProducts] = useState<Product[]>(mockProducts);
@@ -48,8 +57,11 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
 
   useEffect(() => {
     if (table) {
-      setPlayerName(table.player || "");
-      setPhone(table.phone || "");
+      if (table.player) {
+        setPlayers([{ id: "p1", name: table.player, phone: table.phone || "" }]);
+      } else {
+        setPlayers([{ id: "p1", name: "", phone: "" }]);
+      }
       setEditableRate(table.hourly_rate);
       setDiscount(0);
       setLines([]);
@@ -61,6 +73,23 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
   if (!table) return null;
 
   const isPlaying = table.status === "playing";
+
+  const addPlayer = () => {
+    setPlayers((prev) => [
+      ...prev,
+      { id: `p_${Date.now()}_${prev.length + 1}`, name: "", phone: "" },
+    ]);
+  };
+
+  const updatePlayer = (id: string, field: "name" | "phone", val: string) => {
+    setPlayers((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: val } : p))
+    );
+  };
+
+  const removePlayer = (id: string) => {
+    setPlayers((prev) => prev.filter((p) => p.id !== id));
+  };
 
   const addProduct = (product: Product) => {
     setLines((ls) =>
@@ -88,7 +117,22 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
   const handleStartSession = async () => {
     setIsSubmitting(true);
     const now = new Date();
-    const finalPlayer = playerName.trim() || "Walk-in Player";
+
+    const filledNames = players
+      .map((p) => p.name.trim())
+      .filter((n) => n.length > 0);
+
+    let finalPlayer = "Walk-in Match";
+    if (filledNames.length === 1) {
+      finalPlayer = filledNames[0];
+    } else if (filledNames.length === 2) {
+      finalPlayer = `${filledNames[0]} vs ${filledNames[1]}`;
+    } else if (filledNames.length > 2) {
+      finalPlayer = filledNames.join(", ");
+    }
+
+    const primaryPhone =
+      players.find((p) => p.phone.trim().length > 0)?.phone.trim() || null;
 
     // Trigger local push & chime via window event
     if (typeof window !== "undefined") {
@@ -97,7 +141,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
           detail: {
             id: `session-start-${table.id}-${Date.now()}`,
             title: `${table.name} Active`,
-            body: `Player: ${finalPlayer} · Rate: ₹${editableRate}/hr`,
+            body: `Players: ${finalPlayer} · Rate: ₹${editableRate}/hr`,
             table_id: table.id,
             table_name: table.name,
             type: "session_start",
@@ -116,7 +160,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
         .update({
           status: "playing",
           current_player: finalPlayer,
-          current_phone: phone.trim() || null,
+          current_phone: primaryPhone,
           hourly_rate: editableRate,
           session_started_at: now.toISOString(),
           updated_at: now.toISOString(),
@@ -128,7 +172,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
           table_id: table.id,
           table_name: table.name,
           customer_name: finalPlayer,
-          customer_phone: phone.trim() || null,
+          customer_phone: primaryPhone,
           hourly_rate: editableRate,
           started_at: now.toISOString(),
           status: "active",
@@ -141,7 +185,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
     // Mutate table in-memory
     table.status = "playing";
     table.player = finalPlayer;
-    table.phone = phone;
+    table.phone = primaryPhone || undefined;
     table.hourly_rate = editableRate;
     table.session_started_at = now.toISOString();
     table.elapsed = "00:00:01";
@@ -289,7 +333,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
           </span>
         </div>
 
-        {/* Editable Rate Indicator */}
+        {/* Hourly Rate Indicator */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {isEditingRate ? (
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -335,7 +379,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
                 background: "rgba(0, 199, 138, 0.08)",
                 border: "1px solid rgba(0, 199, 138, 0.2)",
               }}
-              title="Click to edit session hourly rate"
+              title="Change session hourly rate"
             >
               <span>₹{editableRate}/hr</span>
               <Sliders size={11} style={{ opacity: 0.7 }} />
@@ -344,7 +388,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
         </div>
       </div>
 
-      {/* When Table is Available: Player & Phone Inputs */}
+      {/* When Table is Available: Multi-Player Match Roster */}
       {!isPlaying && (
         <div
           className="glass-card-inset"
@@ -357,52 +401,162 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
             gap: 12,
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-            Player Details
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "var(--text-primary)",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Players &amp; Match Roster
+              </div>
+              <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 1 }}>
+                Single or multiple players · all fields optional
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={addPlayer}
+              className="btn"
+              style={{ height: 26, padding: "0 8px", fontSize: 11, gap: 4 }}
+            >
+              <Plus size={11} strokeWidth={2.5} />
+              <span>Add Player</span>
+            </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div>
-              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, marginBottom: 5 }}>
-                <User size={12} />
-                <span>Customer / Player</span>
-              </label>
-              <input
-                placeholder="e.g. Rahul S."
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {players.map((p, idx) => (
+              <div
+                key={p.id}
                 style={{
-                  width: "100%",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-default)",
-                  borderRadius: "var(--r-xs)",
-                  padding: "7px 10px",
-                  color: "var(--text-primary)",
-                  fontSize: 12.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  paddingBottom: idx < players.length - 1 ? 10 : 0,
+                  borderBottom:
+                    idx < players.length - 1
+                      ? "1px solid var(--border-subtle)"
+                      : "none",
                 }}
-              />
-            </div>
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Player {idx + 1} {idx === 0 ? "· Primary" : ""}
+                  </span>
+                  {idx > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => removePlayer(p.id)}
+                      style={{
+                        all: "unset",
+                        cursor: "pointer",
+                        color: "var(--text-muted)",
+                        fontSize: 11,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 3,
+                      }}
+                      title="Remove Player"
+                    >
+                      <Trash2 size={11} />
+                      <span>Remove</span>
+                    </button>
+                  )}
+                </div>
 
-            <div>
-              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, marginBottom: 5 }}>
-                <Phone size={12} />
-                <span>Contact Phone</span>
-              </label>
-              <input
-                placeholder="+91 98..."
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                style={{
-                  width: "100%",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-default)",
-                  borderRadius: "var(--r-xs)",
-                  padding: "7px 10px",
-                  color: "var(--text-primary)",
-                  fontSize: 12.5,
-                }}
-              />
-            </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 10.5,
+                        color: "var(--text-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <User size={11} />
+                      <span>Name (Optional)</span>
+                    </label>
+                    <input
+                      placeholder={`e.g. Player ${idx + 1}`}
+                      value={p.name}
+                      onChange={(e) => updatePlayer(p.id, "name", e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "var(--bg-surface)",
+                        border: "1px solid var(--border-default)",
+                        borderRadius: "var(--r-xs)",
+                        padding: "6px 8px",
+                        color: "var(--text-primary)",
+                        fontSize: 12,
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 10.5,
+                        color: "var(--text-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Phone size={11} />
+                      <span>Phone (Optional)</span>
+                    </label>
+                    <input
+                      placeholder="+91..."
+                      value={p.phone}
+                      onChange={(e) => updatePlayer(p.id, "phone", e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "var(--bg-surface)",
+                        border: "1px solid var(--border-default)",
+                        borderRadius: "var(--r-xs)",
+                        padding: "6px 8px",
+                        color: "var(--text-primary)",
+                        fontSize: 12,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
