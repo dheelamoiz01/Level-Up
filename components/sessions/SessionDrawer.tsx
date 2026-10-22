@@ -250,7 +250,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
           justifyContent: "space-between",
           alignItems: "center",
           padding: "10px 14px",
-          borderRadius: 12,
+          borderRadius: "var(--r-sm)",
           marginBottom: 16,
         }}
       >
@@ -265,18 +265,18 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {isEditingRate ? (
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: 12, color: "var(--mint)", fontWeight: 700 }}>₹</span>
+              <span style={{ fontSize: 12, color: "var(--accent-primary)", fontWeight: 700 }}>₹</span>
               <input
                 type="number"
                 value={editableRate}
                 onChange={(e) => setEditableRate(Number(e.target.value))}
                 style={{
                   width: 65,
-                  background: "rgba(0,0,0,0.5)",
-                  border: "1px solid var(--mint)",
-                  borderRadius: 6,
+                  background: "var(--bg-surface-inset)",
+                  border: "1px solid var(--border-active)",
+                  borderRadius: "var(--r-xs)",
                   padding: "3px 6px",
-                  color: "var(--mint)",
+                  color: "var(--accent-primary)",
                   fontSize: 12,
                   fontWeight: 700,
                   fontFamily: "var(--font-mono)",
@@ -296,16 +296,16 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
               style={{
                 all: "unset",
                 cursor: "pointer",
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: 700,
-                color: "var(--mint)",
+                color: "var(--accent-primary)",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 4,
+                gap: 5,
                 padding: "3px 8px",
-                borderRadius: 6,
-                background: "rgba(0, 230, 118, 0.08)",
-                border: "1px solid rgba(0, 230, 118, 0.2)",
+                borderRadius: "var(--r-xs)",
+                background: "rgba(0, 199, 138, 0.08)",
+                border: "1px solid rgba(0, 199, 138, 0.2)",
               }}
               title="Click to edit session hourly rate"
             >
@@ -321,23 +321,23 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
         <div
           className="glass-card-inset"
           style={{
-            padding: 16,
-            borderRadius: 14,
+            padding: 14,
+            borderRadius: "var(--r-sm)",
             marginBottom: 20,
             display: "flex",
             flexDirection: "column",
             gap: 12,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-hero)" }}>
-            Player Information (Editable)
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            Player Details
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <label style={{ fontSize: 11, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, marginBottom: 5 }}>
                 <User size={12} />
-                <span>Customer / Player Name</span>
+                <span>Customer / Player</span>
               </label>
               <input
                 placeholder="e.g. Rahul S."
@@ -345,18 +345,18 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
                 onChange={(e) => setPlayerName(e.target.value)}
                 style={{
                   width: "100%",
-                  background: "rgba(0,0,0,0.4)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 8,
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-default)",
+                  borderRadius: "var(--r-xs)",
                   padding: "7px 10px",
-                  color: "var(--text)",
-                  fontSize: 13,
+                  color: "var(--text-primary)",
+                  fontSize: 12.5,
                 }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: 11, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+              <label style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, marginBottom: 5 }}>
                 <Phone size={12} />
                 <span>Contact Phone</span>
               </label>
@@ -366,12 +366,12 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
                 onChange={(e) => setPhone(e.target.value)}
                 style={{
                   width: "100%",
-                  background: "rgba(0,0,0,0.4)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 8,
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-default)",
+                  borderRadius: "var(--r-xs)",
                   padding: "7px 10px",
-                  color: "var(--text)",
-                  fontSize: 13,
+                  color: "var(--text-primary)",
+                  fontSize: 12.5,
                 }}
               />
             </div>
@@ -381,8 +381,8 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
 
       {/* F&B Food and Drink Picker */}
       <div style={{ marginBottom: 20 }}>
-        <h3 className="eyebrow" style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-          <ShoppingBag size={13} style={{ color: "var(--mint)" }} />
+        <h3 className="eyebrow" style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+          <ShoppingBag size={13} style={{ color: "var(--accent-primary)" }} />
           <span>F&amp;B Menu &amp; Snack Additions</span>
         </h3>
         <ProductPicker products={mockProducts} onAdd={addProduct} />
@@ -390,8 +390,8 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
 
       {/* Bill & Payment Settlement */}
       <div>
-        <h3 className="eyebrow" style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-          <Receipt size={13} style={{ color: "var(--mint)" }} />
+        <h3 className="eyebrow" style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+          <Receipt size={13} style={{ color: "var(--accent-primary)" }} />
           <span>Session Ledger &amp; Settlement</span>
         </h3>
 
@@ -412,7 +412,7 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
 
         {isPlaying && (
           <div style={{ marginTop: 14 }}>
-            <label style={{ fontSize: 11, color: "var(--muted)", display: "block", marginBottom: 6 }}>
+            <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
               Payment Collection Mode
             </label>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>

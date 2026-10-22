@@ -4,7 +4,6 @@ import { useState } from "react";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { Sparkline } from "@/components/ui/Sparkline";
 import { Button } from "@/components/ui/Button";
-import { GlassCard } from "@/components/ui/GlassCard";
 import { staffMetrics, ownerMetrics, mockRevenue, mockSessions } from "@/lib/mock/dashboard";
 import { initialTables } from "@/lib/mock/tables";
 import { initialProducts } from "@/lib/mock/products";
@@ -21,11 +20,9 @@ import {
   ShieldCheck,
   CircleDot,
   Sliders,
-  DollarSign,
-  TrendingUp,
-  Receipt,
+  Package,
   FileText,
-  Lock,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -38,9 +35,9 @@ const revenueDataByRange: Record<TimeRange, number[]> = {
 };
 
 const revenueStatsByRange: Record<TimeRange, { amount: string; delta: string; peak: string; avg: string }> = {
-  Today: { amount: "₹14,850", delta: "+12.4% today", peak: "07:00 PM – 11:30 PM", avg: "₹420/hr" },
-  "7 Days": { amount: "₹98,400", delta: "+16.2% vs last wk", peak: "Fri & Sat 06:00 PM – 01:00 AM", avg: "₹440/hr" },
-  "30 Days": { amount: "₹385,000", delta: "+21.5% monthly", peak: "Weekend Prime Nights", avg: "₹450/hr" },
+  Today: { amount: "₹14,850", delta: "+12.4%", peak: "19:00 – 23:30", avg: "₹420/hr" },
+  "7 Days": { amount: "₹98,400", delta: "+16.2%", peak: "Fri & Sat 18:00 – 01:00", avg: "₹440/hr" },
+  "30 Days": { amount: "₹385,000", delta: "+21.5%", peak: "Weekend Prime", avg: "₹450/hr" },
 };
 
 export default function Dashboard() {
@@ -76,204 +73,175 @@ export default function Dashboard() {
       {/* Page Header with Dual-Role Switcher */}
       <div className="page-head">
         <div>
-          <div className="eyebrow eyebrow-accent" style={{ marginBottom: 6 }}>
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "var(--mint)",
-                boxShadow: "0 0 8px var(--mint)",
-                display: "inline-block",
-              }}
-            />
-            <span>Floor Operations</span>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>
+            <span>Operations Telemetry</span>
             <span style={{ opacity: 0.4 }}>•</span>
-            <span style={{ color: "var(--muted)" }}>5 Arena Tables Live</span>
+            <span>Shift 2</span>
           </div>
-          <h1>Club Dashboard</h1>
+          <h1>Club Operations</h1>
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Role Mode Switcher Capsule */}
+          {/* Role Mode Segmented Switch */}
           <div
-            className="glass-card-inset"
             style={{
               display: "inline-flex",
-              padding: "3px",
-              borderRadius: "var(--r-full)",
-              gap: 3,
+              padding: "2px",
+              borderRadius: "var(--r-sm)",
+              background: "var(--bg-surface-inset)",
+              border: "1px solid var(--border-subtle)",
+              gap: 2,
             }}
           >
             <button
               onClick={() => setRole("staff")}
-              className={`btn ${!isOwner ? "btn-primary" : ""}`}
               style={{
-                height: 32,
-                padding: "0 12px",
-                fontSize: 11.5,
-                fontWeight: !isOwner ? 700 : 500,
-                boxShadow: !isOwner ? "var(--shadow-emerald-pill)" : "none",
-                display: "flex",
+                all: "unset",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
+                height: 28,
+                padding: "0 10px",
+                borderRadius: "var(--r-xs)",
+                fontSize: 11.5,
+                fontWeight: !isOwner ? 600 : 500,
+                color: !isOwner ? "var(--text-primary)" : "var(--text-muted)",
+                background: !isOwner ? "var(--bg-surface-raised)" : "transparent",
+                border: !isOwner ? "1px solid var(--border-default)" : "1px solid transparent",
+                cursor: "pointer",
               }}
             >
-              <CircleDot size={12} />
-              <span>Staff Mode</span>
+              <CircleDot size={11} />
+              <span>Staff</span>
             </button>
             <button
               onClick={() => setRole("owner")}
-              className={`btn ${isOwner ? "btn-primary" : ""}`}
               style={{
-                height: 32,
-                padding: "0 12px",
-                fontSize: 11.5,
-                fontWeight: isOwner ? 700 : 500,
-                boxShadow: isOwner ? "var(--shadow-emerald-pill)" : "none",
-                display: "flex",
+                all: "unset",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: 5,
+                height: 28,
+                padding: "0 10px",
+                borderRadius: "var(--r-xs)",
+                fontSize: 11.5,
+                fontWeight: isOwner ? 600 : 500,
+                color: isOwner ? "var(--accent-primary)" : "var(--text-muted)",
+                background: isOwner ? "var(--bg-surface-raised)" : "transparent",
+                border: isOwner ? "1px solid var(--border-default)" : "1px solid transparent",
+                cursor: "pointer",
               }}
             >
-              <ShieldCheck size={13} />
-              <span>Owner Mode</span>
+              <ShieldCheck size={12} />
+              <span>Owner</span>
             </button>
           </div>
 
-          {/* Quick Manager Actions (Visible on Owner Mode) */}
+          {/* Quick Manager Actions (Owner Mode) */}
           {isOwner && (
             <>
               <button
                 onClick={() => setRatesModalOpen(true)}
                 className="btn"
-                style={{
-                  height: 34,
-                  padding: "0 12px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  gap: 5,
-                  background: "rgba(0, 230, 118, 0.08)",
-                  border: "1px solid rgba(0, 230, 118, 0.25)",
-                  color: "var(--mint)",
-                }}
+                style={{ height: 32, fontSize: 11.5, gap: 5 }}
               >
-                <Sliders size={13} strokeWidth={2.2} />
-                <span>Rates</span>
+                <Sliders size={12} />
+                <span>Table Rates</span>
               </button>
 
               <button
                 onClick={() => setProductsModalOpen(true)}
                 className="btn"
-                style={{
-                  height: 34,
-                  padding: "0 12px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  gap: 5,
-                  background: "rgba(0, 230, 118, 0.08)",
-                  border: "1px solid rgba(0, 230, 118, 0.25)",
-                  color: "var(--mint)",
-                }}
+                style={{ height: 32, fontSize: 11.5, gap: 5 }}
               >
+                <Package size={12} />
                 <span>F&amp;B Menu</span>
               </button>
             </>
           )}
 
           <Link href="/tables">
-            <Button variant="ghost" style={{ height: 34, fontSize: 12 }}>
-              Arena Tables
-            </Button>
+            <button className="btn" style={{ height: 32, fontSize: 11.5 }}>
+              Live Fleet
+            </button>
           </Link>
 
-          <Button
-            variant="primary"
+          <button
+            className="btn btn-primary"
             onClick={() => {
               const available = tables.find((t) => t.status === "available");
               setSelectedTable(available || tables[0]);
             }}
-            style={{ height: 34, fontSize: 12, gap: 5, fontWeight: 700 }}
+            style={{ height: 32, fontSize: 11.5, gap: 5 }}
           >
-            <Plus size={15} strokeWidth={3} />
+            <Plus size={14} strokeWidth={2.5} />
             <span>Start Session</span>
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* Primary KPI Grid (Differentiated by Role) */}
+      {/* Primary KPI Grid */}
       <div className="grid-4">
-        {metricsToDisplay.map((m, index) => {
-          const variants = ["highlight", "raised", "default", "raised"] as const;
-          const asyms = ["1", "2", "3", "4"] as const;
-          return (
-            <MetricCard
-              key={m.label}
-              {...m}
-              asymmetry={asyms[index] || "1"}
-              variant={variants[index] || "default"}
-            />
-          );
-        })}
+        {metricsToDisplay.map((m) => (
+          <MetricCard key={m.label} {...m} />
+        ))}
       </div>
 
-      {/* Owner-Only: 5-Table Fleet Yield Analytics */}
+      {/* Owner-Only: 5-Table Fleet Breakdown Panel */}
       {isOwner && (
         <div
-          className="glass-card glass-card-inset"
+          className="glass-card"
           style={{
             padding: "16px 20px",
-            borderRadius: "var(--r-md)",
-            marginBottom: "var(--s-4)",
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
             gap: 16,
-            border: "1px solid rgba(0, 230, 118, 0.18)",
+            alignItems: "center",
           }}
         >
           <div>
-            <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <div className="eyebrow" style={{ marginBottom: 3 }}>
               2x Royal Tables (VIP)
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-hero)", marginTop: 2, fontFamily: "var(--font-mono)" }}>
-              ₹6,850 <span style={{ fontSize: 12, color: "var(--mint)", fontWeight: 600 }}>46% share</span>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
+              ₹6,850 <span style={{ fontSize: 11, color: "var(--accent-primary)", fontWeight: 500 }}>46% yield</span>
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
               Occupancy: 88% · Avg ticket: ₹580
             </div>
           </div>
 
           <div>
-            <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <div className="eyebrow" style={{ marginBottom: 3 }}>
               2x Snooker Tables (12ft)
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-hero)", marginTop: 2, fontFamily: "var(--font-mono)" }}>
-              ₹5,200 <span style={{ fontSize: 12, color: "var(--mint)", fontWeight: 600 }}>35% share</span>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
+              ₹5,200 <span style={{ fontSize: 11, color: "var(--accent-primary)", fontWeight: 500 }}>35% yield</span>
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
               Occupancy: 76% · Avg ticket: ₹410
             </div>
           </div>
 
           <div>
-            <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <div className="eyebrow" style={{ marginBottom: 3 }}>
               1x Pool Table (9ft)
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-hero)", marginTop: 2, fontFamily: "var(--font-mono)" }}>
-              ₹2,800 <span style={{ fontSize: 12, color: "var(--mint)", fontWeight: 600 }}>19% share</span>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
+              ₹2,800 <span style={{ fontSize: 11, color: "var(--accent-primary)", fontWeight: 500 }}>19% yield</span>
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
-              Turnover: 9 matches · Avg ticket: ₹220
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+              Turnover: 9 matches · Avg: ₹220
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
               onClick={() => setZReportOpen(true)}
-              className="btn btn-primary"
-              style={{ height: 34, padding: "0 14px", fontSize: 12, fontWeight: 700, gap: 6 }}
+              className="btn"
+              style={{ height: 32, fontSize: 11.5, gap: 5 }}
             >
-              <FileText size={14} />
+              <FileText size={13} />
               <span>Z-Report Settlement</span>
             </button>
           </div>
@@ -283,10 +251,15 @@ export default function Dashboard() {
       {/* Main Operational Analytics & Ledger Grid */}
       <div className="grid-2">
         {/* Revenue Trajectory Chart Surface */}
-        <GlassCard
-          variant="raised"
-          className="metric"
-          style={{ minHeight: 410, justifyContent: "space-between" }}
+        <div
+          className="glass-card"
+          style={{
+            padding: "18px 20px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: 360,
+          }}
         >
           <div>
             <div
@@ -300,34 +273,34 @@ export default function Dashboard() {
             >
               <div>
                 <span className="eyebrow">Revenue Trajectory</span>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 4 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
                   <span
                     style={{
-                      fontSize: 32,
-                      fontWeight: 800,
-                      color: "var(--text-hero)",
+                      fontSize: 26,
+                      fontWeight: 700,
+                      color: "var(--text-primary)",
                       letterSpacing: "-0.03em",
-                      textShadow: "0 0 25px rgba(92, 242, 176, 0.22)",
                       fontFamily: "var(--font-mono)",
                     }}
                   >
                     {currentStats.amount}
                   </span>
                   <span className="delta-badge">
-                    <ArrowUpRight size={12} strokeWidth={2.5} />
+                    <ArrowUpRight size={11} strokeWidth={2.2} />
                     {currentStats.delta}
                   </span>
                 </div>
               </div>
 
-              {/* Time Range Filter Capsule */}
+              {/* Time Range Segmented Control */}
               <div
-                className="glass-card-inset"
                 style={{
                   display: "inline-flex",
-                  padding: "4px",
-                  borderRadius: "var(--r-full)",
-                  gap: 3,
+                  padding: "2px",
+                  borderRadius: "var(--r-xs)",
+                  background: "var(--bg-surface-inset)",
+                  border: "1px solid var(--border-subtle)",
+                  gap: 2,
                 }}
               >
                 {(["Today", "7 Days", "30 Days"] as TimeRange[]).map((tab) => {
@@ -338,15 +311,14 @@ export default function Dashboard() {
                       onClick={() => setRange(tab)}
                       style={{
                         all: "unset",
-                        padding: "5px 14px",
-                        borderRadius: "var(--r-full)",
-                        fontSize: 12,
-                        fontWeight: active ? 700 : 500,
-                        color: active ? "#02160d" : "var(--muted)",
-                        background: active ? "linear-gradient(135deg, var(--mint), var(--emerald))" : "transparent",
-                        boxShadow: active ? "var(--shadow-emerald-pill)" : "none",
+                        padding: "3px 10px",
+                        borderRadius: "var(--r-xs)",
+                        fontSize: 11,
+                        fontWeight: active ? 600 : 500,
+                        color: active ? "var(--text-primary)" : "var(--text-muted)",
+                        background: active ? "var(--bg-surface-raised)" : "transparent",
+                        border: active ? "1px solid var(--border-default)" : "1px solid transparent",
                         cursor: "pointer",
-                        transition: "all 0.2s var(--ease)",
                       }}
                     >
                       {tab}
@@ -357,95 +329,92 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <Sparkline data={currentData} height={220} timeRange={range} />
+          <Sparkline data={currentData} height={190} timeRange={range} />
 
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              paddingTop: 14,
-              borderTop: "1px solid var(--glass-border-subtle)",
-              fontSize: 12,
-              color: "var(--muted)",
+              paddingTop: 12,
+              borderTop: "1px solid var(--border-subtle)",
+              fontSize: 11.5,
+              color: "var(--text-muted)",
             }}
           >
-            <span>Peak slot: {currentStats.peak}</span>
+            <span>Peak hours: {currentStats.peak}</span>
             <span style={{ color: "var(--text-secondary)" }}>Average ticket: {currentStats.avg}</span>
           </div>
-        </GlassCard>
+        </div>
 
         {/* Recent Sessions Information-Dense Panel */}
-        <GlassCard variant="default" asymmetry="2" className="metric" style={{ minHeight: 410, justifyContent: "space-between" }}>
+        <div
+          className="glass-card"
+          style={{
+            padding: "18px 20px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: 360,
+          }}
+        >
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div>
                 <span className="eyebrow" style={{ marginBottom: 2 }}>Floor Ledger</span>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-hero)" }}>Recent Sessions</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Recent Sessions</h3>
               </div>
               <Link
                 href="/tables"
                 style={{
-                  fontSize: 12,
+                  fontSize: 11.5,
                   fontWeight: 600,
-                  color: "var(--mint)",
+                  color: "var(--text-secondary)",
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
-                  padding: "4px 10px",
-                  borderRadius: "var(--r-full)",
-                  background: "rgba(92, 242, 176, 0.08)",
-                  border: "1px solid rgba(92, 242, 176, 0.2)",
-                  transition: "all 0.2s var(--ease)",
+                  padding: "3px 8px",
+                  borderRadius: "var(--r-xs)",
+                  background: "var(--bg-surface-inset)",
+                  border: "1px solid var(--border-subtle)",
                 }}
               >
                 <span>Arena Fleet</span>
-                <ArrowUpRight size={13} />
+                <ArrowUpRight size={11} />
               </Link>
             </div>
 
-            <div className="rows">
+            <div style={{ display: "flex", flexDirection: "column" }}>
               {mockSessions.map((s) => (
-                <div key={s.id} className="recent-session-row" style={{ padding: "12px 8px", borderRadius: "var(--r-sm)" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div key={s.id} className="recent-session-row" style={{ padding: "10px 4px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div
                       style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: "var(--r-md)",
-                        background: s.paid ? "rgba(16, 185, 129, 0.12)" : "rgba(245, 158, 11, 0.12)",
-                        border: s.paid ? "1px solid rgba(16, 185, 129, 0.35)" : "1px solid rgba(245, 158, 11, 0.35)",
+                        width: 32,
+                        height: 32,
+                        borderRadius: "var(--r-xs)",
+                        background: "var(--bg-surface-inset)",
+                        border: "1px solid var(--border-subtle)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: s.paid ? "var(--mint)" : "var(--amber)",
-                        fontWeight: 800,
-                        fontSize: 13,
-                        boxShadow: s.paid ? "0 0 14px rgba(16, 185, 129, 0.2)" : "0 0 14px rgba(245, 158, 11, 0.2)",
+                        color: "var(--text-secondary)",
+                        fontWeight: 700,
+                        fontSize: 11,
+                        fontFamily: "var(--font-mono)",
                       }}
                     >
                       {s.player.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <span style={{ fontWeight: 700, color: "var(--text-hero)", fontSize: 14 }}>
+                      <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13 }}>
                         {s.player}
-                      </span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, fontSize: 12, color: "var(--muted)" }}>
-                        <span
-                          style={{
-                            color: "var(--text-secondary)",
-                            fontWeight: 600,
-                            background: "rgba(255, 255, 255, 0.04)",
-                            padding: "1px 6px",
-                            borderRadius: "var(--r-xs)",
-                            border: "1px solid var(--glass-border-subtle)",
-                          }}
-                        >
-                          {s.table}
-                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1, fontSize: 11, color: "var(--text-muted)" }}>
+                        <span>{s.table}</span>
                         <span>•</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <Clock size={11} />
+                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <Clock size={10} />
                           {s.duration}
                         </span>
                       </div>
@@ -453,28 +422,28 @@ export default function Dashboard() {
                   </div>
 
                   <div style={{ textAlign: "right" }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-hero)", fontFamily: "var(--font-mono)" }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
                       ₹{s.amount}
-                    </span>
-                    <div style={{ marginTop: 3 }}>
+                    </div>
+                    <div style={{ marginTop: 2 }}>
                       <span
                         className="badge"
                         style={{
-                          fontSize: 11,
-                          padding: "2px 8px",
-                          color: s.paid ? "var(--mint)" : "var(--amber)",
-                          background: s.paid ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)",
-                          borderColor: s.paid ? "rgba(16, 185, 129, 0.3)" : "rgba(245, 158, 11, 0.3)",
+                          fontSize: 10,
+                          padding: "1px 6px",
+                          color: s.paid ? "var(--accent-primary)" : "var(--amber)",
+                          background: s.paid ? "rgba(0, 199, 138, 0.08)" : "rgba(245, 158, 11, 0.08)",
+                          borderColor: s.paid ? "rgba(0, 199, 138, 0.2)" : "rgba(245, 158, 11, 0.2)",
                         }}
                       >
                         {s.paid ? (
                           <>
-                            <CheckCircle2 size={11} />
+                            <CheckCircle2 size={10} />
                             Settled ({s.payment_method?.toUpperCase() || "PAID"})
                           </>
                         ) : (
                           <>
-                            <AlertCircle size={11} />
+                            <AlertCircle size={10} />
                             Udhar Due
                           </>
                         )}
@@ -488,19 +457,19 @@ export default function Dashboard() {
 
           <div
             style={{
-              paddingTop: 12,
-              borderTop: "1px solid var(--glass-border-subtle)",
+              paddingTop: 10,
+              borderTop: "1px solid var(--border-subtle)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              fontSize: 11.5,
-              color: "var(--muted)",
+              fontSize: 11,
+              color: "var(--text-muted)",
             }}
           >
-            <span>{mockSessions.length} active entries in ledger</span>
-            <span style={{ color: "var(--mint)" }}>● Telemetry synchronized</span>
+            <span>{mockSessions.length} active entries logged</span>
+            <span style={{ color: "var(--text-secondary)" }}>● Telemetry live</span>
           </div>
-        </GlassCard>
+        </div>
       </div>
 
       {/* Session Drawer */}
@@ -535,8 +504,8 @@ export default function Dashboard() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0, 0, 0, 0.8)",
-            backdropFilter: "blur(14px)",
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(6px)",
             zIndex: 99999,
             display: "flex",
             alignItems: "center",
@@ -549,46 +518,46 @@ export default function Dashboard() {
             className="glass-card"
             style={{
               width: "100%",
-              maxWidth: 440,
-              background: "#0D140F",
-              border: "1px solid rgba(0, 230, 118, 0.35)",
-              borderRadius: 20,
-              padding: 24,
+              maxWidth: 420,
+              background: "var(--bg-surface-raised)",
+              border: "1px solid var(--border-default)",
+              borderRadius: "var(--r-md)",
+              padding: 22,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-hero)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
                 End-of-Day Settlement (Z-Report)
               </div>
-              <button onClick={() => setZReportOpen(false)} style={{ all: "unset", color: "var(--muted)", cursor: "pointer" }}>
-                ✕
+              <button onClick={() => setZReportOpen(false)} style={{ all: "unset", color: "var(--text-muted)", cursor: "pointer" }}>
+                <X size={16} />
               </button>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12.5 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--muted)" }}>Total Sessions Billed:</span>
-                <span style={{ fontWeight: 700, color: "var(--text)" }}>14 matches</span>
+                <span style={{ color: "var(--text-muted)" }}>Total Sessions Billed:</span>
+                <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>14 matches</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--muted)" }}>Table Hourly Revenue:</span>
-                <span style={{ fontWeight: 700, color: "var(--text)" }}>₹11,450</span>
+                <span style={{ color: "var(--text-muted)" }}>Table Hourly Revenue:</span>
+                <span style={{ fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>₹11,450</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--muted)" }}>F&amp;B Snack &amp; Drinks:</span>
-                <span style={{ fontWeight: 700, color: "var(--text)" }}>₹3,400</span>
+                <span style={{ color: "var(--text-muted)" }}>F&amp;B Snack &amp; Drinks:</span>
+                <span style={{ fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>₹3,400</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--muted)" }}>Discounts Deducted:</span>
-                <span style={{ fontWeight: 700, color: "var(--amber)" }}>-₹450</span>
+                <span style={{ color: "var(--text-muted)" }}>Discounts Deducted:</span>
+                <span style={{ fontWeight: 600, color: "var(--amber)", fontFamily: "var(--font-mono)" }}>-₹450</span>
               </div>
-              <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "4px 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 800 }}>
+              <div style={{ height: 1, background: "var(--border-subtle)", margin: "4px 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 700 }}>
                 <span>Gross Settlement:</span>
-                <span style={{ color: "var(--mint)", fontFamily: "var(--font-mono)" }}>₹14,850</span>
+                <span style={{ color: "var(--accent-primary)", fontFamily: "var(--font-mono)" }}>₹14,850</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-secondary)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "var(--text-secondary)" }}>
                 <span>UPI Collections: ₹10,250</span>
                 <span>Cash Drawer: ₹4,600</span>
               </div>
@@ -596,11 +565,11 @@ export default function Dashboard() {
 
             <button
               onClick={() => {
-                alert("Shift settlement report downloaded & ledger locked.");
+                alert("Shift settlement report exported.");
                 setZReportOpen(false);
               }}
               className="btn btn-primary"
-              style={{ width: "100%", height: 38, marginTop: 18, fontWeight: 700 }}
+              style={{ width: "100%", height: 36, marginTop: 16, fontWeight: 700 }}
             >
               Export &amp; Lock Daily Ledger
             </button>

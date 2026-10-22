@@ -26,7 +26,7 @@ export default function Page() {
       </div>
 
       <div
-        className="glass"
+        className="glass-card"
         style={{
           padding: "48px 24px",
           display: "flex",
@@ -40,25 +40,24 @@ export default function Page() {
       >
         <div
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: "50%",
-            background: "rgba(16, 185, 129, 0.1)",
-            border: "1px solid rgba(92, 242, 176, 0.25)",
-            boxShadow: "0 0 24px -4px rgba(16, 185, 129, 0.3)",
+            width: 48,
+            height: 48,
+            borderRadius: "var(--r-sm)",
+            background: "var(--bg-surface-inset)",
+            border: "1px solid var(--border-default)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "var(--mint)",
+            color: "var(--accent-primary)",
           }}
         >
-          <BarChart3 size={28} strokeWidth={2} />
+          <BarChart3 size={24} strokeWidth={2} />
         </div>
         <div style={{ maxWidth: 440 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-hero)", marginBottom: 8 }}>
-            Daily Ledger & Shift Breakdown
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
+            Daily Ledger &amp; Shift Breakdown
           </h2>
-          <p className="muted" style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          <p className="muted" style={{ fontSize: 13, lineHeight: 1.6 }}>
             Revenue reconciliations, table utilization percentages, peak hourly occupancy, and cashier settlement logs.
           </p>
         </div>

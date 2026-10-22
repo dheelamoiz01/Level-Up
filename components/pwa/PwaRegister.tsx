@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Download, X, BellRing, Share2, PlusSquare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Download, X, Bell, Share2, PlusSquare } from "lucide-react";
 import { usePWAInstall } from "@/hooks/use-pwa-install";
 
 export function PwaRegister() {
@@ -13,18 +13,16 @@ export function PwaRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1. Service Worker Registration
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js", { updateViaCache: "none" })
         .then((reg) => {
           reg.update();
 
-          // 2. Notification Permission Check
           if ("Notification" in window && Notification.permission === "default") {
             const hasDismissed = sessionStorage.getItem("levelup_notif_dismissed");
             if (!hasDismissed) {
-              setTimeout(() => setShowNotifBanner(true), 2500);
+              setTimeout(() => setShowNotifBanner(true), 3000);
             }
           }
         })
@@ -34,7 +32,7 @@ export function PwaRegister() {
 
   useEffect(() => {
     if (isInstallable && !isInstalled) {
-      const timer = setTimeout(() => setShowInstallBanner(true), 1500);
+      const timer = setTimeout(() => setShowInstallBanner(true), 2000);
       return () => clearTimeout(timer);
     }
   }, [isInstallable, isInstalled]);
@@ -62,36 +60,33 @@ export function PwaRegister() {
 
   return (
     <>
-      {/* ── Native Mobile Install Banner ────────────────────────────────────────── */}
+      {/* ── Integrated PWA Install Banner ─────────────────────────────────── */}
       {showInstallBanner && !isInstalled && (
         <div
-          className="glass-card glass-card-floating"
           style={{
             position: "fixed",
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)",
-            left: "50%",
-            transform: "translateX(-50%)",
+            bottom: 20,
+            right: 20,
             zIndex: 9999,
             display: "flex",
             alignItems: "center",
             gap: 12,
             padding: "10px 14px",
-            borderRadius: 18,
-            border: "1px solid rgba(0, 230, 118, 0.3)",
-            background: "rgba(13, 22, 17, 0.94)",
-            backdropFilter: "blur(20px)",
-            boxShadow: "0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 230, 118, 0.18)",
-            maxWidth: 380,
+            borderRadius: "var(--r-md)",
+            border: "1px solid var(--border-default)",
+            background: "var(--bg-surface-raised)",
+            boxShadow: "var(--shadow-lg)",
+            maxWidth: 360,
             width: "calc(100vw - 32px)",
           }}
         >
           <div
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: "rgba(0, 230, 118, 0.1)",
-              border: "1px solid rgba(0, 230, 118, 0.3)",
+              width: 32,
+              height: 32,
+              borderRadius: "var(--r-xs)",
+              background: "var(--bg-surface-inset)",
+              border: "1px solid var(--border-subtle)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -99,15 +94,15 @@ export function PwaRegister() {
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.svg" alt="Level Up" style={{ width: 24, height: 24 }} />
+            <img src="/icon.svg" alt="Level Up" style={{ width: 20, height: 20 }} />
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-hero)", lineHeight: 1.2 }}>
-              Install Level Up App
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2 }}>
+              Install Level Up
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.2 }}>
-              Instant mobile home screen access &amp; timers
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, lineHeight: 1.2 }}>
+              Add to home screen for quick mobile access
             </div>
           </div>
 
@@ -122,14 +117,14 @@ export function PwaRegister() {
             }}
             className="btn btn-primary"
             style={{
-              height: 32,
-              padding: "0 12px",
-              fontSize: 12,
+              height: 28,
+              padding: "0 10px",
+              fontSize: 11.5,
               fontWeight: 700,
               flexShrink: 0,
             }}
           >
-            <Download size={13} strokeWidth={2.5} />
+            <Download size={12} strokeWidth={2.2} />
             <span>Install</span>
           </button>
 
@@ -137,65 +132,62 @@ export function PwaRegister() {
             onClick={() => setShowInstallBanner(false)}
             style={{
               all: "unset",
-              color: "var(--muted)",
+              color: "var(--text-muted)",
               cursor: "pointer",
-              padding: 4,
+              padding: 2,
               display: "flex",
               alignItems: "center",
             }}
             aria-label="Dismiss banner"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
       )}
 
-      {/* ── Notification Permission Request Banner ──────────────────────────── */}
+      {/* ── Integrated Notification Permission Request Banner ──────────────── */}
       {showNotifBanner && (
         <div
-          className="glass-card glass-card-floating"
           style={{
             position: "fixed",
-            top: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
+            top: 16,
+            right: 16,
             zIndex: 9999,
             display: "flex",
             alignItems: "center",
             gap: 12,
             padding: "10px 14px",
-            borderRadius: 18,
-            border: "1px solid rgba(0, 230, 118, 0.3)",
-            background: "rgba(13, 22, 17, 0.94)",
-            backdropFilter: "blur(20px)",
-            boxShadow: "0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 230, 118, 0.18)",
-            maxWidth: 380,
+            borderRadius: "var(--r-md)",
+            border: "1px solid var(--border-default)",
+            background: "var(--bg-surface-raised)",
+            boxShadow: "var(--shadow-lg)",
+            maxWidth: 360,
             width: "calc(100vw - 32px)",
           }}
         >
           <div
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: "rgba(0, 230, 118, 0.1)",
-              border: "1px solid rgba(0, 230, 118, 0.3)",
+              width: 30,
+              height: 30,
+              borderRadius: "var(--r-xs)",
+              background: "rgba(0, 199, 138, 0.08)",
+              border: "1px solid rgba(0, 199, 138, 0.2)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "var(--mint)",
+              color: "var(--accent-primary)",
               flexShrink: 0,
             }}
           >
-            <BellRing size={16} strokeWidth={2.2} />
+            <Bell size={14} strokeWidth={2.2} />
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-hero)", lineHeight: 1.2 }}>
-              Enable Table Notifications
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2 }}>
+              Enable Table Alerts
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.2 }}>
-              Get mobile alerts when tables go active or finish
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, lineHeight: 1.2 }}>
+              Receive alerts for active tables and check-ins
             </div>
           </div>
 
@@ -203,9 +195,9 @@ export function PwaRegister() {
             onClick={handleRequestNotifications}
             className="btn btn-primary"
             style={{
-              height: 32,
-              padding: "0 12px",
-              fontSize: 12,
+              height: 28,
+              padding: "0 10px",
+              fontSize: 11.5,
               fontWeight: 700,
               flexShrink: 0,
             }}
@@ -220,15 +212,15 @@ export function PwaRegister() {
             }}
             style={{
               all: "unset",
-              color: "var(--muted)",
+              color: "var(--text-muted)",
               cursor: "pointer",
-              padding: 4,
+              padding: 2,
               display: "flex",
               alignItems: "center",
             }}
             aria-label="Dismiss banner"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
       )}
@@ -239,12 +231,13 @@ export function PwaRegister() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0, 0, 0, 0.8)",
-            backdropFilter: "blur(12px)",
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(6px)",
             zIndex: 10000,
             display: "flex",
-            alignItems: "flex-end",
+            alignItems: "center",
             justifyContent: "center",
+            padding: 16,
           }}
           onClick={() => setShowIOSGuide(false)}
         >
@@ -252,79 +245,46 @@ export function PwaRegister() {
             className="glass-card"
             style={{
               width: "100%",
-              maxWidth: 440,
-              background: "#0D140F",
-              borderTop: "1px solid rgba(0, 230, 118, 0.25)",
-              borderRadius: "24px 24px 0 0",
-              padding: "24px 20px 36px",
+              maxWidth: 380,
+              background: "var(--bg-surface-raised)",
+              border: "1px solid var(--border-default)",
+              borderRadius: "var(--r-md)",
+              padding: "20px",
               display: "flex",
               flexDirection: "column",
-              gap: 16,
+              gap: 14,
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-hero)" }}>
-                Install on iPhone / iPad
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
+                Install on iOS
               </div>
               <button
                 onClick={() => setShowIOSGuide(false)}
-                style={{ all: "unset", color: "var(--muted)", cursor: "pointer" }}
+                style={{ all: "unset", color: "var(--text-muted)", cursor: "pointer" }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: "rgba(255, 255, 255, 0.06)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--mint)",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Share2 size={16} />
-                </div>
-                <div style={{ fontSize: 13, color: "var(--text)" }}>
-                  1. Tap the <strong>Share</strong> button on the Safari bottom bar.
-                </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 12.5 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Share2 size={16} style={{ color: "var(--accent-primary)" }} />
+                <span>1. Tap the <strong>Share</strong> icon in Safari bottom bar.</span>
               </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: "rgba(255, 255, 255, 0.06)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--mint)",
-                    flexShrink: 0,
-                  }}
-                >
-                  <PlusSquare size={16} />
-                </div>
-                <div style={{ fontSize: 13, color: "var(--text)" }}>
-                  2. Scroll down and tap <strong>Add to Home Screen</strong>.
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <PlusSquare size={16} style={{ color: "var(--accent-primary)" }} />
+                <span>2. Select <strong>Add to Home Screen</strong>.</span>
               </div>
             </div>
 
             <button
               className="btn btn-primary"
-              style={{ width: "100%", height: 42, marginTop: 8 }}
+              style={{ width: "100%", height: 34, marginTop: 4, fontSize: 12 }}
               onClick={() => setShowIOSGuide(false)}
             >
-              Got it
+              Done
             </button>
           </div>
         </div>

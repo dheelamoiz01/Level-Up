@@ -18,24 +18,24 @@ export function ProductPicker({ products, onAdd }: Props) {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "Drinks":
-        return <Coffee size={18} strokeWidth={2.2} style={{ color: "var(--mint)" }} />;
+        return <Coffee size={16} strokeWidth={2} style={{ color: "var(--accent-primary)" }} />;
       case "Snacks":
-        return <Utensils size={18} strokeWidth={2.2} style={{ color: "var(--mint)" }} />;
+        return <Utensils size={16} strokeWidth={2} style={{ color: "var(--accent-primary)" }} />;
       default:
-        return <Package size={18} strokeWidth={2.2} style={{ color: "var(--mint)" }} />;
+        return <Package size={16} strokeWidth={2} style={{ color: "var(--text-secondary)" }} />;
     }
   };
 
   return (
     <section>
       <div
-        className="chips glass-card-inset"
+        className="chips"
         style={{
           display: "inline-flex",
-          padding: "3px",
-          borderRadius: "var(--r-full)",
-          gap: 4,
-          marginBottom: 14,
+          padding: "2px",
+          borderRadius: "var(--r-sm)",
+          gap: 2,
+          marginBottom: 12,
         }}
       >
         {cats.map((c) => (
@@ -43,11 +43,10 @@ export function ProductPicker({ products, onAdd }: Props) {
             key={c}
             className={`btn ${cat === c ? "btn-primary" : ""}`}
             style={{
-              height: 30,
-              padding: "0 13px",
-              fontSize: 12,
+              height: 28,
+              padding: "0 11px",
+              fontSize: 11.5,
               fontWeight: cat === c ? 700 : 500,
-              boxShadow: cat === c ? "var(--shadow-emerald-pill)" : "none",
             }}
             onClick={() => setCat(c)}
           >
@@ -57,7 +56,7 @@ export function ProductPicker({ products, onAdd }: Props) {
       </div>
 
       {list.length === 0 ? (
-        <p className="muted" style={{ fontStyle: "italic", fontSize: 13 }}>
+        <p className="muted" style={{ fontStyle: "italic", fontSize: 12.5 }}>
           No products in this category.
         </p>
       ) : (
@@ -74,21 +73,21 @@ export function ProductPicker({ products, onAdd }: Props) {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 6,
-                padding: "14px 10px",
-                borderRadius: 14,
-                background: "rgba(255, 255, 255, 0.03)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                padding: "12px 8px",
+                borderRadius: "var(--r-sm)",
+                background: "var(--bg-surface-inset)",
+                border: "1px solid var(--border-subtle)",
                 cursor: "pointer",
-                transition: "all 0.2s ease",
+                transition: "all 0.15s ease",
               }}
             >
               <div
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: "rgba(0, 230, 118, 0.08)",
-                  border: "1px solid rgba(0, 230, 118, 0.2)",
+                  width: 34,
+                  height: 34,
+                  borderRadius: "var(--r-xs)",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -100,10 +99,10 @@ export function ProductPicker({ products, onAdd }: Props) {
               <span
                 style={{
                   fontWeight: 600,
-                  color: "var(--text-hero)",
+                  color: "var(--text-primary)",
                   textAlign: "center",
-                  fontSize: 12.5,
-                  lineHeight: 1.2,
+                  fontSize: 12,
+                  lineHeight: 1.25,
                   marginTop: 2,
                 }}
               >
@@ -111,10 +110,10 @@ export function ProductPicker({ products, onAdd }: Props) {
               </span>
 
               <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--mint)", fontFamily: "var(--font-mono)" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-primary)", fontFamily: "var(--font-mono)" }}>
                   ₹{p.price}
                 </span>
-                <Plus size={11} strokeWidth={3} style={{ color: "var(--mint)", opacity: 0.8 }} />
+                <Plus size={11} strokeWidth={2.5} style={{ color: "var(--accent-primary)", opacity: 0.8 }} />
               </div>
             </button>
           ))}

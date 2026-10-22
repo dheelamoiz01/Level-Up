@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Package, Plus, Trash2, Check, X, Coffee, Utensils, Tag } from "lucide-react";
+import { Package, Plus, Trash2, Check, X } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -54,7 +54,6 @@ export function ProductManagementModal({
 
     onAddProduct(newProd);
 
-    // Sync to Supabase
     try {
       const supabase = createClient();
       await supabase.from("products").insert([
@@ -72,7 +71,6 @@ export function ProductManagementModal({
       console.debug("Supabase product insert info:", err);
     }
 
-    // Reset form
     setNewName("");
     setNewPrice(100);
     setNewCost(60);
@@ -97,7 +95,6 @@ export function ProductManagementModal({
     onUpdateProduct(updated);
     setEditingId(null);
 
-    // Sync to Supabase
     try {
       const supabase = createClient();
       await supabase
@@ -145,7 +142,7 @@ export function ProductManagementModal({
         position: "fixed",
         inset: 0,
         background: "rgba(0, 0, 0, 0.75)",
-        backdropFilter: "blur(12px)",
+        backdropFilter: "blur(6px)",
         zIndex: 9999,
         display: "flex",
         alignItems: "center",
@@ -158,39 +155,39 @@ export function ProductManagementModal({
         className="glass-card"
         style={{
           width: "100%",
-          maxWidth: 580,
-          background: "#0D140F",
-          border: "1px solid rgba(0, 230, 118, 0.3)",
-          borderRadius: 20,
-          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 230, 118, 0.15)",
-          padding: 24,
+          maxWidth: 520,
+          background: "var(--bg-surface-raised)",
+          border: "1px solid var(--border-default)",
+          borderRadius: "var(--r-md)",
+          boxShadow: "var(--shadow-lg)",
+          padding: 22,
           maxHeight: "90vh",
           overflowY: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
-                background: "rgba(0, 230, 118, 0.12)",
-                border: "1px solid rgba(0, 230, 118, 0.3)",
+                width: 32,
+                height: 32,
+                borderRadius: "var(--r-xs)",
+                background: "rgba(0, 199, 138, 0.08)",
+                border: "1px solid rgba(0, 199, 138, 0.2)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "var(--mint)",
+                color: "var(--accent-primary)",
               }}
             >
-              <Package size={18} strokeWidth={2.2} />
+              <Package size={15} strokeWidth={2.2} />
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-hero)" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
                 F&amp;B Menu &amp; Product Pricing
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
                 Edit food and drink selling prices, cost &amp; inventory
               </div>
             </div>
@@ -198,9 +195,9 @@ export function ProductManagementModal({
 
           <button
             onClick={onClose}
-            style={{ all: "unset", color: "var(--muted)", cursor: "pointer", padding: 4 }}
+            style={{ all: "unset", color: "var(--text-muted)", cursor: "pointer", padding: 2 }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
@@ -209,53 +206,53 @@ export function ProductManagementModal({
           <button
             onClick={() => setShowAddForm(true)}
             className="btn btn-primary"
-            style={{ width: "100%", height: 38, marginBottom: 18, fontSize: 13, fontWeight: 700, gap: 6 }}
+            style={{ width: "100%", height: 32, marginBottom: 16, fontSize: 12, gap: 5 }}
           >
-            <Plus size={15} strokeWidth={2.5} />
-            <span>Add New Food / Drink Item</span>
+            <Plus size={13} strokeWidth={2.2} />
+            <span>Add New Item</span>
           </button>
         ) : (
           <form
             onSubmit={handleCreateProduct}
-            className="glass-card-inset"
             style={{
-              padding: 16,
-              borderRadius: 14,
-              marginBottom: 18,
-              border: "1px solid rgba(0, 230, 118, 0.25)",
+              padding: 14,
+              borderRadius: "var(--r-xs)",
+              marginBottom: 16,
+              background: "var(--bg-surface-inset)",
+              border: "1px solid var(--border-default)",
               display: "flex",
               flexDirection: "column",
-              gap: 12,
+              gap: 10,
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-hero)" }}>
-              New Item Details
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
+              New Item
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 8 }}>
               <div>
-                <label style={{ fontSize: 11, color: "var(--muted)", display: "block", marginBottom: 4 }}>
+                <label style={{ fontSize: 10.5, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>
                   Item Name
                 </label>
                 <input
                   required
-                  placeholder="e.g. Energy Drink"
+                  placeholder="e.g. Cold Brew"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   style={{
                     width: "100%",
-                    background: "rgba(0, 0, 0, 0.4)",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                    borderRadius: 8,
-                    padding: "7px 10px",
-                    color: "var(--text)",
-                    fontSize: 13,
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: "var(--r-xs)",
+                    padding: "6px 8px",
+                    color: "var(--text-primary)",
+                    fontSize: 12,
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: 11, color: "var(--muted)", display: "block", marginBottom: 4 }}>
+                <label style={{ fontSize: 10.5, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>
                   Category
                 </label>
                 <select
@@ -263,25 +260,25 @@ export function ProductManagementModal({
                   onChange={(e) => setNewCategory(e.target.value as "Drinks" | "Snacks" | "Other")}
                   style={{
                     width: "100%",
-                    background: "rgba(0, 0, 0, 0.4)",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                    borderRadius: 8,
-                    padding: "7px 10px",
-                    color: "var(--text)",
-                    fontSize: 13,
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: "var(--r-xs)",
+                    padding: "6px 8px",
+                    color: "var(--text-primary)",
+                    fontSize: 12,
                   }}
                 >
                   <option value="Drinks">Drinks</option>
                   <option value="Snacks">Snacks</option>
-                  <option value="Other">Other / Cue Supplies</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               <div>
-                <label style={{ fontSize: 11, color: "var(--muted)", display: "block", marginBottom: 4 }}>
-                  Selling Price (₹)
+                <label style={{ fontSize: 10.5, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>
+                  Price (₹)
                 </label>
                 <input
                   type="number"
@@ -290,20 +287,21 @@ export function ProductManagementModal({
                   onChange={(e) => setNewPrice(Number(e.target.value))}
                   style={{
                     width: "100%",
-                    background: "rgba(0, 0, 0, 0.4)",
-                    border: "1px solid rgba(0, 230, 118, 0.3)",
-                    borderRadius: 8,
-                    padding: "7px 10px",
-                    color: "var(--mint)",
-                    fontSize: 13,
-                    fontWeight: 700,
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: "var(--r-xs)",
+                    padding: "6px 8px",
+                    color: "var(--accent-primary)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: "var(--font-mono)",
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: 11, color: "var(--muted)", display: "block", marginBottom: 4 }}>
-                  Cost Price (₹)
+                <label style={{ fontSize: 10.5, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>
+                  Cost (₹)
                 </label>
                 <input
                   type="number"
@@ -311,18 +309,19 @@ export function ProductManagementModal({
                   onChange={(e) => setNewCost(Number(e.target.value))}
                   style={{
                     width: "100%",
-                    background: "rgba(0, 0, 0, 0.4)",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                    borderRadius: 8,
-                    padding: "7px 10px",
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: "var(--r-xs)",
+                    padding: "6px 8px",
                     color: "var(--text-secondary)",
-                    fontSize: 13,
+                    fontSize: 12,
+                    fontFamily: "var(--font-mono)",
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: 11, color: "var(--muted)", display: "block", marginBottom: 4 }}>
+                <label style={{ fontSize: 10.5, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>
                   Stock Qty
                 </label>
                 <input
@@ -331,43 +330,44 @@ export function ProductManagementModal({
                   onChange={(e) => setNewStock(Number(e.target.value))}
                   style={{
                     width: "100%",
-                    background: "rgba(0, 0, 0, 0.4)",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                    borderRadius: 8,
-                    padding: "7px 10px",
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: "var(--r-xs)",
+                    padding: "6px 8px",
                     color: "var(--text-secondary)",
-                    fontSize: 13,
+                    fontSize: 12,
+                    fontFamily: "var(--font-mono)",
                   }}
                 />
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", marginTop: 2 }}>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
                 className="btn"
-                style={{ height: 32, padding: "0 14px", fontSize: 12 }}
+                style={{ height: 28, padding: "0 10px", fontSize: 11 }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 className="btn btn-primary"
-                style={{ height: 32, padding: "0 16px", fontSize: 12, fontWeight: 700 }}
+                style={{ height: 28, padding: "0 12px", fontSize: 11 }}
               >
-                Save Product
+                Save Item
               </button>
             </div>
           </form>
         )}
 
         {/* Existing Products List */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-          Current Products ({products.length} Items)
+        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+          Current Products ({products.length})
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {products.map((p) => {
             const isEditing = editingId === p.id;
 
@@ -378,42 +378,43 @@ export function ProductManagementModal({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  padding: "10px 14px",
-                  borderRadius: 12,
-                  background: "rgba(255, 255, 255, 0.03)",
-                  border: "1px solid rgba(255, 255, 255, 0.06)",
+                  padding: "8px 12px",
+                  borderRadius: "var(--r-xs)",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
                   opacity: p.active ? 1 : 0.6,
                 }}
               >
-                <div style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
+                <div style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
                   {isEditing ? (
                     <input
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       style={{
-                        background: "rgba(0, 0, 0, 0.5)",
-                        border: "1px solid var(--mint)",
-                        borderRadius: 6,
-                        padding: "4px 8px",
-                        color: "var(--text-hero)",
-                        fontSize: 13,
-                        fontWeight: 700,
+                        background: "var(--bg-surface-inset)",
+                        border: "1px solid var(--accent-primary)",
+                        borderRadius: "var(--r-xs)",
+                        padding: "4px 6px",
+                        color: "var(--text-primary)",
+                        fontSize: 12,
+                        fontWeight: 600,
                         width: "100%",
                       }}
                     />
                   ) : (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-hero)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                         {p.name}
                       </span>
                       <span
                         style={{
-                          fontSize: 10,
-                          fontWeight: 600,
-                          padding: "1px 6px",
-                          borderRadius: 4,
-                          background: "rgba(255, 255, 255, 0.06)",
-                          color: "var(--muted)",
+                          fontSize: 9.5,
+                          fontWeight: 500,
+                          padding: "1px 5px",
+                          borderRadius: "var(--r-xs)",
+                          background: "var(--bg-surface-inset)",
+                          color: "var(--text-muted)",
+                          border: "1px solid var(--border-subtle)",
                         }}
                       >
                         {p.category}
@@ -421,40 +422,41 @@ export function ProductManagementModal({
                     </div>
                   )}
 
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                  <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 1 }}>
                     Cost: ₹{p.cost_price || Math.round(p.price * 0.6)} · Margin:{" "}
-                    <span style={{ color: "var(--mint)" }}>
+                    <span style={{ color: "var(--accent-primary)" }}>
                       {Math.round((1 - (p.cost_price || p.price * 0.6) / p.price) * 100)}%
                     </span>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                   {isEditing ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ fontSize: 12, color: "var(--mint)", fontWeight: 700 }}>₹</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      <span style={{ fontSize: 11, color: "var(--accent-primary)" }}>₹</span>
                       <input
                         type="number"
                         value={editPrice}
                         onChange={(e) => setEditPrice(Number(e.target.value))}
                         style={{
-                          width: 70,
-                          background: "rgba(0, 0, 0, 0.5)",
-                          border: "1px solid var(--mint)",
-                          borderRadius: 6,
-                          padding: "4px 6px",
-                          color: "var(--mint)",
-                          fontSize: 13,
-                          fontWeight: 700,
+                          width: 55,
+                          background: "var(--bg-surface-inset)",
+                          border: "1px solid var(--accent-primary)",
+                          borderRadius: "var(--r-xs)",
+                          padding: "3px 4px",
+                          color: "var(--accent-primary)",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          fontFamily: "var(--font-mono)",
                           textAlign: "right",
                         }}
                       />
                       <button
                         onClick={() => saveEdit(p)}
                         className="btn btn-primary"
-                        style={{ height: 28, padding: "0 8px", fontSize: 11 }}
+                        style={{ height: 24, padding: "0 6px", fontSize: 10 }}
                       >
-                        <Check size={12} />
+                        <Check size={11} />
                       </button>
                     </div>
                   ) : (
@@ -463,14 +465,14 @@ export function ProductManagementModal({
                       style={{
                         all: "unset",
                         cursor: "pointer",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: "var(--mint)",
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        color: "var(--accent-primary)",
                         fontFamily: "var(--font-mono)",
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        background: "rgba(0, 230, 118, 0.08)",
-                        border: "1px solid rgba(0, 230, 118, 0.2)",
+                        padding: "3px 6px",
+                        borderRadius: "var(--r-xs)",
+                        background: "var(--bg-surface-inset)",
+                        border: "1px solid var(--border-subtle)",
                       }}
                       title="Click to edit selling price"
                     >
@@ -482,12 +484,11 @@ export function ProductManagementModal({
                     onClick={() => toggleStock(p)}
                     className="btn"
                     style={{
-                      height: 28,
-                      padding: "0 8px",
-                      fontSize: 10.5,
-                      fontWeight: 600,
-                      background: p.active ? "rgba(0, 230, 118, 0.12)" : "rgba(255, 255, 255, 0.06)",
-                      color: p.active ? "var(--mint)" : "var(--muted)",
+                      height: 24,
+                      padding: "0 6px",
+                      fontSize: 10,
+                      fontWeight: 500,
+                      color: p.active ? "var(--accent-primary)" : "var(--text-muted)",
                     }}
                   >
                     {p.active ? "In Stock" : "Out"}
@@ -498,14 +499,14 @@ export function ProductManagementModal({
                     style={{
                       all: "unset",
                       cursor: "pointer",
-                      color: "var(--muted)",
-                      padding: 4,
+                      color: "var(--text-dim)",
+                      padding: 2,
                       display: "flex",
                       alignItems: "center",
                     }}
                     title="Delete product"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>
@@ -513,9 +514,9 @@ export function ProductManagementModal({
           })}
         </div>
 
-        <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end" }}>
-          <button className="btn btn-primary" onClick={onClose} style={{ height: 36, padding: "0 18px", fontSize: 13, fontWeight: 700 }}>
-            Done
+        <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+          <button className="btn" onClick={onClose} style={{ height: 32, padding: "0 14px", fontSize: 12 }}>
+            Close
           </button>
         </div>
       </div>

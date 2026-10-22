@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CircleDot, X, ArrowUpRight, CheckCircle2, Clock } from "lucide-react";
+import { CircleDot, X, ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { playChime } from "@/lib/notifications/audio";
 import { showLocalNativeNotification } from "@/lib/notifications/push-service";
@@ -14,7 +14,6 @@ export function NotificationListener() {
   const router = useRouter();
   const [activeToast, setActiveToast] = useState<FloorNotification | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitialized = useRef(false);
 
   const triggerFloorAlert = (notif: FloorNotification) => {
     if (notifiedEventIds.has(notif.id)) return;
@@ -31,12 +30,12 @@ export function NotificationListener() {
       url: notif.table_id ? `/tables?focus=${notif.table_id}` : "/tables",
     });
 
-    // 3. Show in-app liquid glass toast
+    // 3. Show in-app integrated toast
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setActiveToast(notif);
     toastTimeoutRef.current = setTimeout(() => {
       setActiveToast(null);
-    }, 6000);
+    }, 5000);
 
     // 4. Notify open windows to refresh telemetry
     if (typeof window !== "undefined") {
@@ -47,10 +46,9 @@ export function NotificationListener() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Supabase Realtime Channel
     const supabase = createClient();
 
-    // 1. Listen for table status changes (e.g. available -> playing)
+    // 1. Listen for table updates
     const tablesChannel = supabase
       .channel("levelup_tables_stream")
       .on(
@@ -86,8 +84,8 @@ export function NotificationListener() {
           const sess = payload.new as any;
           triggerFloorAlert({
             id: `sess-${sess.id}`,
-            title: `Session Started: ${sess.table_name}`,
-            body: `Customer: ${sess.customer_name} (₹${sess.hourly_rate}/hr)`,
+            title: `Session: ${sess.table_name}`,
+            body: `${sess.customer_name} · ₹${sess.hourly_rate}/hr`,
             table_id: sess.table_id,
             table_name: sess.table_name,
             type: "session_start",
@@ -132,48 +130,46 @@ export function NotificationListener() {
 
   return (
     <div
-      className="glass-card glass-card-floating"
       style={{
         position: "fixed",
-        top: 24,
-        right: 24,
+        top: 18,
+        right: 18,
         zIndex: 99999,
         display: "flex",
         alignItems: "center",
         gap: 12,
-        padding: "12px 16px",
-        borderRadius: 16,
-        background: "rgba(13, 20, 16, 0.94)",
-        border: "1px solid rgba(0, 230, 118, 0.4)",
-        boxShadow: "0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(0, 230, 118, 0.22)",
-        backdropFilter: "blur(20px)",
-        maxWidth: 380,
+        padding: "10px 14px",
+        borderRadius: "var(--r-md)",
+        background: "var(--bg-surface-raised)",
+        border: "1px solid var(--border-default)",
+        boxShadow: "var(--shadow-lg)",
+        maxWidth: 360,
         width: "calc(100vw - 32px)",
-        animation: "slideInTop 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+        animation: "slideInTop 0.2s ease-out",
       }}
     >
       <div
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: "rgba(0, 230, 118, 0.12)",
-          border: "1px solid rgba(0, 230, 118, 0.35)",
+          width: 30,
+          height: 30,
+          borderRadius: "var(--r-xs)",
+          background: "rgba(0, 199, 138, 0.08)",
+          border: "1px solid rgba(0, 199, 138, 0.2)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "var(--mint)",
+          color: "var(--accent-primary)",
           flexShrink: 0,
         }}
       >
-        <CircleDot size={18} strokeWidth={2.5} />
+        <CircleDot size={15} strokeWidth={2.2} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-hero)", lineHeight: 1.2 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2 }}>
           {activeToast.title}
         </div>
-        <div style={{ fontSize: 11.5, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.25 }}>
+        <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.25 }}>
           {activeToast.body}
         </div>
       </div>
@@ -183,29 +179,29 @@ export function NotificationListener() {
           setActiveToast(null);
           router.push(activeToast.table_id ? `/tables` : "/tables");
         }}
-        className="btn btn-primary"
+        className="btn"
         style={{
-          height: 30,
-          padding: "0 10px",
-          fontSize: 11.5,
-          fontWeight: 700,
+          height: 28,
+          padding: "0 8px",
+          fontSize: 11,
+          fontWeight: 600,
           flexShrink: 0,
           display: "inline-flex",
           alignItems: "center",
-          gap: 4,
+          gap: 3,
         }}
       >
         <span>View</span>
-        <ArrowUpRight size={13} />
+        <ArrowUpRight size={12} />
       </button>
 
       <button
         onClick={() => setActiveToast(null)}
         style={{
           all: "unset",
-          color: "var(--muted)",
+          color: "var(--text-muted)",
           cursor: "pointer",
-          padding: 4,
+          padding: 2,
           display: "flex",
           alignItems: "center",
         }}

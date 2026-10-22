@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { initialProducts } from "@/lib/mock/products";
 import type { Product } from "@/lib/types";
-import { Package, Plus, Coffee, Utensils, Sliders, CheckCircle2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Package, Coffee, Utensils, Sliders } from "lucide-react";
 import { ProductManagementModal } from "@/components/modals/ProductManagementModal";
 
 export default function ProductsPage() {
@@ -20,11 +19,11 @@ export default function ProductsPage() {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "Drinks":
-        return <Coffee size={20} strokeWidth={2.2} style={{ color: "var(--mint)" }} />;
+        return <Coffee size={18} strokeWidth={2} style={{ color: "var(--accent-primary)" }} />;
       case "Snacks":
-        return <Utensils size={20} strokeWidth={2.2} style={{ color: "var(--mint)" }} />;
+        return <Utensils size={18} strokeWidth={2} style={{ color: "var(--accent-primary)" }} />;
       default:
-        return <Package size={20} strokeWidth={2.2} style={{ color: "var(--mint)" }} />;
+        return <Package size={18} strokeWidth={2} style={{ color: "var(--text-secondary)" }} />;
     }
   };
 
@@ -44,31 +43,36 @@ export default function ProductsPage() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow eyebrow-accent" style={{ marginBottom: 4 }}>
-            <span>F&amp;B Menu &amp; Inventory</span>
-            <span style={{ opacity: 0.5 }}>•</span>
-            <span style={{ color: "var(--muted)" }}>{products.length} Products Configured</span>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>
+            <span>Inventory &amp; F&amp;B</span>
+            <span style={{ opacity: 0.4 }}>•</span>
+            <span>{products.length} Products Configured</span>
           </div>
-          <h1>Club Products &amp; Pricing</h1>
+          <h1>Club Products &amp; Rates</h1>
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Button variant="primary" onClick={() => setModalOpen(true)} style={{ gap: 6, fontWeight: 700 }}>
-            <Sliders size={15} strokeWidth={2.5} />
-            <span>Manage Menu &amp; Prices</span>
-          </Button>
+          <button
+            className="btn btn-primary"
+            onClick={() => setModalOpen(true)}
+            style={{ height: 32, fontSize: 11.5, gap: 5 }}
+          >
+            <Sliders size={13} strokeWidth={2.2} />
+            <span>Manage Menu &amp; Rates</span>
+          </button>
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Segmented Filter Control */}
       <div
-        className="glass-card-inset"
         style={{
           display: "inline-flex",
-          padding: "4px",
-          borderRadius: "var(--r-full)",
-          gap: 4,
-          marginBottom: 20,
+          padding: "2px",
+          borderRadius: "var(--r-sm)",
+          background: "var(--bg-surface-inset)",
+          border: "1px solid var(--border-subtle)",
+          gap: 2,
+          marginBottom: 16,
         }}
       >
         {categories.map((c) => {
@@ -77,25 +81,29 @@ export default function ProductsPage() {
           return (
             <button
               key={c}
-              className={`btn ${active ? "btn-primary" : ""}`}
               style={{
-                height: 32,
-                padding: "0 14px",
-                fontSize: 12,
-                fontWeight: active ? 700 : 500,
-                boxShadow: active ? "var(--shadow-emerald-pill)" : "none",
+                all: "unset",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                height: 28,
+                padding: "0 10px",
+                borderRadius: "var(--r-xs)",
+                fontSize: 11.5,
+                fontWeight: active ? 600 : 500,
+                color: active ? "var(--text-primary)" : "var(--text-muted)",
+                background: active ? "var(--bg-surface-raised)" : "transparent",
+                border: active ? "1px solid var(--border-default)" : "1px solid transparent",
+                cursor: "pointer",
               }}
               onClick={() => setActiveCategory(c)}
             >
               <span>{c}</span>
               <span
                 style={{
-                  fontSize: 10.5,
-                  opacity: active ? 0.9 : 0.6,
+                  fontSize: 10,
                   fontFamily: "var(--font-mono)",
-                  background: active ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.08)",
-                  padding: "1px 6px",
-                  borderRadius: "var(--r-full)",
+                  color: active ? "var(--accent-primary)" : "var(--text-dim)",
                 }}
               >
                 {count}
@@ -108,8 +116,8 @@ export default function ProductsPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-          gap: "var(--s-4)",
+          gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+          gap: 14,
         }}
       >
         {filtered.map((p) => {
@@ -119,26 +127,23 @@ export default function ProductsPage() {
           return (
             <div
               key={p.id}
-              className="glass"
+              className="glass-card"
               style={{
-                padding: "20px",
+                padding: "16px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "14px",
-                borderRadius: "var(--r-md)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                background: "rgba(13, 20, 15, 0.7)",
-                position: "relative",
+                gap: "12px",
+                opacity: p.active ? 1 : 0.6,
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    background: "rgba(0, 230, 118, 0.08)",
-                    border: "1px solid rgba(0, 230, 118, 0.22)",
+                    width: 36,
+                    height: 36,
+                    borderRadius: "var(--r-xs)",
+                    background: "var(--bg-surface-inset)",
+                    border: "1px solid var(--border-subtle)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -152,11 +157,11 @@ export default function ProductsPage() {
                     style={{
                       fontSize: 10.5,
                       fontWeight: 600,
-                      color: "var(--mint)",
-                      background: "rgba(0, 230, 118, 0.08)",
-                      padding: "2px 8px",
-                      borderRadius: "var(--r-full)",
-                      border: "1px solid rgba(0, 230, 118, 0.2)",
+                      color: "var(--text-muted)",
+                      background: "var(--bg-surface-inset)",
+                      padding: "2px 6px",
+                      borderRadius: "var(--r-xs)",
+                      border: "1px solid var(--border-subtle)",
                     }}
                   >
                     {p.category}
@@ -164,28 +169,29 @@ export default function ProductsPage() {
                   <span
                     style={{
                       fontSize: 10,
-                      fontWeight: 700,
-                      color: p.active ? "var(--mint)" : "var(--muted)",
+                      fontWeight: 600,
+                      color: p.active ? "var(--accent-primary)" : "var(--text-muted)",
                       padding: "2px 6px",
-                      borderRadius: 4,
-                      background: p.active ? "rgba(0, 230, 118, 0.1)" : "rgba(255, 255, 255, 0.05)",
+                      borderRadius: "var(--r-xs)",
+                      background: p.active ? "rgba(0, 199, 138, 0.08)" : "var(--bg-surface-inset)",
+                      border: p.active ? "1px solid rgba(0, 199, 138, 0.2)" : "1px solid var(--border-subtle)",
                     }}
                   >
-                    {p.active ? "In Stock" : "Out"}
+                    {p.active ? "In Stock" : "Out of Stock"}
                   </span>
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-hero)", display: "block" }}>
+                <span style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-primary)", display: "block" }}>
                   {p.name}
                 </span>
 
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
-                  <span style={{ fontSize: 22, fontWeight: 800, color: "var(--mint)", fontFamily: "var(--font-mono)" }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
+                  <span style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
                     ₹{p.price}
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     cost: ₹{cost}
                   </span>
                 </div>
@@ -196,14 +202,14 @@ export default function ProductsPage() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  paddingTop: 10,
-                  borderTop: "1px solid var(--glass-border-subtle)",
-                  fontSize: 11.5,
-                  color: "var(--muted)",
+                  paddingTop: 8,
+                  borderTop: "1px solid var(--border-subtle)",
+                  fontSize: 11,
+                  color: "var(--text-muted)",
                 }}
               >
                 <span>Stock: {p.stock_count || 50} units</span>
-                <span style={{ color: "var(--mint)", fontWeight: 600 }}>{margin}% margin</span>
+                <span style={{ color: "var(--accent-primary)", fontWeight: 600 }}>{margin}% margin</span>
               </div>
             </div>
           );

@@ -1,10 +1,9 @@
 import type { Metric } from "@/lib/types";
-import { TrendingUp, AlertCircle, ArrowUpRight } from "lucide-react";
-import { GlassCard } from "./GlassCard";
+import { ArrowUpRight, AlertCircle } from "lucide-react";
 
 interface MetricCardProps extends Metric {
-  asymmetry?: "1" | "2" | "3" | "4";
-  variant?: "default" | "raised" | "inset" | "floating" | "highlight";
+  asymmetry?: string;
+  variant?: string;
 }
 
 export function MetricCard({
@@ -12,79 +11,79 @@ export function MetricCard({
   value,
   delta,
   hint,
-  asymmetry,
-  variant = "default",
 }: MetricCardProps) {
   const isUdhar = label.toLowerCase().includes("outstanding") || label.toLowerCase().includes("udhar");
 
   return (
-    <GlassCard
-      variant={variant}
-      asymmetry={asymmetry}
-      interactive
-      className="metric"
+    <div
+      className="glass-card metric"
       style={{
-        justifyContent: "space-between",
-        minHeight: 148,
+        border: isUdhar ? "1px solid rgba(245, 158, 11, 0.25)" : "1px solid var(--border-default)",
+        minHeight: 124,
       }}
     >
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-          <span className="eyebrow" style={{ color: isUdhar ? "var(--amber)" : "var(--muted)" }}>
-            {isUdhar && <AlertCircle size={11} />}
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.07em",
+              color: isUdhar ? "var(--amber)" : "var(--text-muted)",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            {isUdhar && <AlertCircle size={12} strokeWidth={2.2} />}
             {label}
           </span>
+
           {delta && (
             <span
-              className="delta-badge"
               style={{
-                background: isUdhar ? "rgba(245, 158, 11, 0.12)" : "rgba(92, 242, 176, 0.12)",
-                color: isUdhar ? "var(--amber)" : "var(--mint)",
-                borderColor: isUdhar ? "rgba(245, 158, 11, 0.28)" : "rgba(92, 242, 176, 0.28)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 11,
+                fontWeight: 600,
+                fontFamily: "var(--font-mono)",
+                padding: "2px 6px",
+                borderRadius: "var(--r-xs)",
+                color: isUdhar ? "var(--amber)" : "var(--accent-primary)",
+                background: isUdhar ? "rgba(245, 158, 11, 0.08)" : "rgba(0, 199, 138, 0.08)",
+                border: isUdhar ? "1px solid rgba(245, 158, 11, 0.2)" : "1px solid rgba(0, 199, 138, 0.2)",
               }}
             >
-              <ArrowUpRight size={11} strokeWidth={2.5} />
+              <ArrowUpRight size={11} strokeWidth={2.2} />
               {delta}
             </span>
           )}
         </div>
-        <span
+
+        <div
           className="value"
           style={{
-            display: "block",
             marginTop: 8,
-            color: isUdhar ? "#fef3c7" : "var(--text-hero)",
-            textShadow: variant === "highlight" ? "0 0 20px rgba(92, 242, 176, 0.3)" : "none",
+            color: isUdhar ? "#FCD34D" : "var(--text-primary)",
           }}
         >
           {value}
-        </span>
+        </div>
       </div>
 
       {hint && (
-        <span
-          className="muted"
+        <div
           style={{
-            fontSize: 12.5,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            color: isUdhar ? "rgba(245, 158, 11, 0.75)" : "var(--muted)",
+            fontSize: 11.5,
+            color: "var(--text-muted)",
+            marginTop: 6,
           }}
         >
-          <span
-            style={{
-              width: 5,
-              height: 5,
-              borderRadius: "50%",
-              backgroundColor: isUdhar ? "var(--amber)" : "rgba(167, 243, 208, 0.4)",
-              display: "inline-block",
-              boxShadow: isUdhar ? "0 0 6px var(--amber)" : "none",
-            }}
-          />
           {hint}
-        </span>
+        </div>
       )}
-    </GlassCard>
+    </div>
   );
 }

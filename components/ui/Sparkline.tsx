@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useId } from "react";
 
 interface Props {
@@ -8,22 +9,22 @@ interface Props {
 }
 
 const timelineLabels: Record<"Today" | "7 Days" | "30 Days", string[]> = {
-  Today: ["09:00 AM", "12:00 PM", "03:00 PM", "06:00 PM", "09:30 PM", "11:30 PM"],
+  Today: ["09:00", "12:00", "15:00", "18:00", "21:30", "23:30"],
   "7 Days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   "30 Days": ["Wk 1", "Wk 2", "Wk 3", "Wk 4", "Wk 5"],
 };
 
-export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
+export function Sparkline({ data, height = 200, timeRange = "Today" }: Props) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const gradId = useId();
 
-  if (!data.length) return <div className="muted">No revenue telemetry recorded.</div>;
+  if (!data.length) return <div className="muted">No telemetry recorded.</div>;
 
   const w = 620;
-  const paddingLeft = 16;
-  const paddingRight = 56; // Room for readable Y-axis labels on the right
-  const paddingTop = 44; // Room for floating tooltip above peak
-  const paddingBottom = 32; // Room for X-axis timeline labels
+  const paddingLeft = 14;
+  const paddingRight = 48;
+  const paddingTop = 36;
+  const paddingBottom = 26;
   const chartW = w - paddingLeft - paddingRight;
   const chartH = height - paddingTop - paddingBottom;
 
@@ -31,7 +32,7 @@ export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
   const min = Math.min(...data, 0);
   const range = max - min || 1;
 
-  // Find peak point index
+  // Peak index
   const peakIdx = data.reduce((maxI, v, i, arr) => (v > arr[maxI] ? i : maxI), 0);
   const activeIdx = hoveredIdx !== null ? hoveredIdx : peakIdx;
 
@@ -53,18 +54,17 @@ export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
 
   const fillD = `${pathD} L ${points[points.length - 1].x} ${paddingTop + chartH} L ${points[0].x} ${paddingTop + chartH} Z`;
 
-  // Y-axis tick values
+  // Clean Y-axis tick values
   const yTicks = [
-    { label: timeRange === "30 Days" ? "₹80k" : timeRange === "7 Days" ? "₹20k" : "₹15k", ratio: 0 },
-    { label: timeRange === "30 Days" ? "₹50k" : timeRange === "7 Days" ? "₹14k" : "₹10k", ratio: 0.33 },
-    { label: timeRange === "30 Days" ? "₹25k" : timeRange === "7 Days" ? "₹7k" : "₹5k", ratio: 0.66 },
-    { label: "₹0", ratio: 1 },
+    { label: timeRange === "30 Days" ? "80k" : timeRange === "7 Days" ? "20k" : "15k", ratio: 0 },
+    { label: timeRange === "30 Days" ? "50k" : timeRange === "7 Days" ? "14k" : "10k", ratio: 0.33 },
+    { label: timeRange === "30 Days" ? "25k" : timeRange === "7 Days" ? "7k" : "5k", ratio: 0.66 },
+    { label: "0", ratio: 1 },
   ];
 
   const currentPoint = points[activeIdx] || points[peakIdx];
   const xLabels = timelineLabels[timeRange] || timelineLabels.Today;
 
-  // Formatted tooltip amount
   const activeAmount =
     timeRange === "30 Days"
       ? `₹${(currentPoint.val * 1000).toLocaleString("en-IN")}`
@@ -74,16 +74,16 @@ export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
 
   const tooltipLabel =
     hoveredIdx !== null
-      ? `Slot #${activeIdx + 1} ↗`
+      ? `Interval #${activeIdx + 1}`
       : timeRange === "Today"
-      ? "Peak 09:30 PM ↗"
+      ? "Peak 21:30"
       : timeRange === "7 Days"
-      ? "Saturday Peak ↗"
-      : "Week 5 Peak ↗";
+      ? "Saturday Peak"
+      : "Week 5 Peak";
 
   return (
     <div
-      style={{ position: "relative", width: "100%", marginTop: 4, userSelect: "none" }}
+      style={{ position: "relative", width: "100%", userSelect: "none" }}
       onMouseLeave={() => setHoveredIdx(null)}
     >
       <svg
@@ -97,16 +97,12 @@ export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
       >
         <defs>
           <linearGradient id={`area-grad-${gradId}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#5cf2b0" stopOpacity="0.4" />
-            <stop offset="50%" stopColor="#10b981" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="#04120a" stopOpacity="0.0" />
+            <stop offset="0%" stopColor="#00C78A" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#00C78A" stopOpacity="0.0" />
           </linearGradient>
-          <filter id={`line-glow-${gradId}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#10b981" floodOpacity="0.55" />
-          </filter>
         </defs>
 
-        {/* Ambient background guide lines & Y-Axis Labels */}
+        {/* Quiet background guide lines & Y-Axis Labels */}
         {yTicks.map((tick, i) => {
           const yPos = paddingTop + tick.ratio * chartH;
           return (
@@ -116,18 +112,20 @@ export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
                 y1={yPos}
                 x2={paddingLeft + chartW}
                 y2={yPos}
-                stroke="rgba(167, 243, 208, 0.06)"
-                strokeDasharray={i === yTicks.length - 1 ? undefined : "4 4"}
+                stroke="#15382A"
+                strokeWidth="1"
+                strokeDasharray={i === yTicks.length - 1 ? undefined : "3 3"}
+                strokeOpacity="0.6"
               />
               <text
-                x={paddingLeft + chartW + 12}
-                y={yPos + 4}
-                fill="var(--muted)"
-                fontSize="11"
+                x={paddingLeft + chartW + 10}
+                y={yPos + 3.5}
+                fill="#506B5E"
+                fontSize="10"
                 fontFamily="var(--font-mono)"
                 fontWeight="500"
               >
-                {tick.label}
+                ₹{tick.label}
               </text>
             </g>
           );
@@ -136,28 +134,28 @@ export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
         {/* Subtle area fill underneath the curve */}
         <path d={fillD} fill={`url(#area-grad-${gradId})`} />
 
-        {/* Dotted vertical anchor line down from active peak point */}
+        {/* Vertical tracking indicator */}
         <line
           x1={currentPoint.x}
           y1={currentPoint.y}
           x2={currentPoint.x}
           y2={paddingTop + chartH}
-          stroke="rgba(92, 242, 176, 0.35)"
-          strokeWidth="1.5"
-          strokeDasharray="3 3"
+          stroke="#15382A"
+          strokeWidth="1"
+          strokeDasharray="2 2"
         />
 
-        {/* Crisp neon emerald spline stroke */}
+        {/* Thin, crisp emerald spline stroke */}
         <path
           d={pathD}
           fill="none"
-          stroke="#5cf2b0"
-          strokeWidth="2.5"
-          filter={`url(#line-glow-${gradId})`}
+          stroke="#00C78A"
+          strokeWidth="1.75"
           strokeLinecap="round"
+          strokeLinejoin="round"
         />
 
-        {/* Interactive hover hit targets along data points */}
+        {/* Interactive hover hit targets */}
         {points.map((p, i) => (
           <circle
             key={i}
@@ -170,10 +168,9 @@ export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
           />
         ))}
 
-        {/* Coordinate beacon on active point */}
-        <circle cx={currentPoint.x} cy={currentPoint.y} r="9" fill="#5cf2b0" fillOpacity="0.22" />
-        <circle cx={currentPoint.x} cy={currentPoint.y} r="4.5" fill="#5cf2b0" stroke="#04120a" strokeWidth="2" />
-        <circle cx={currentPoint.x} cy={currentPoint.y} r="1.5" fill="#ffffff" />
+        {/* Coordinate indicator on active point */}
+        <circle cx={currentPoint.x} cy={currentPoint.y} r="3.5" fill="#00C78A" />
+        <circle cx={currentPoint.x} cy={currentPoint.y} r="6" fill="none" stroke="#00C78A" strokeWidth="1" strokeOpacity="0.4" />
 
         {/* X-Axis Timeline Labels */}
         {xLabels.map((lbl, idx) => {
@@ -182,11 +179,12 @@ export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
             <text
               key={idx}
               x={xPos}
-              y={paddingTop + chartH + 20}
+              y={paddingTop + chartH + 18}
               textAnchor={idx === 0 ? "start" : idx === xLabels.length - 1 ? "end" : "middle"}
-              fill="var(--muted)"
-              fontSize="11"
-              fontWeight="600"
+              fill="#506B5E"
+              fontSize="10.5"
+              fontWeight="500"
+              fontFamily="var(--font-mono)"
             >
               {lbl}
             </text>
@@ -194,35 +192,31 @@ export function Sparkline({ data, height = 210, timeRange = "Today" }: Props) {
         })}
       </svg>
 
-      {/* Floating Refined Liquid Glass Tooltip Pill (Mimics Reference Target) */}
+      {/* Understated Tooltip Pill */}
       <div
         style={{
           position: "absolute",
           left: `${(currentPoint.x / w) * 100}%`,
-          top: Math.max(currentPoint.y - 42, 2),
+          top: Math.max(currentPoint.y - 32, 0),
           transform: "translateX(-50%)",
           pointerEvents: "none",
           zIndex: 10,
           whiteSpace: "nowrap",
-          padding: "5px 12px",
-          borderRadius: "var(--r-full)",
-          background: "linear-gradient(135deg, rgba(20, 52, 38, 0.92) 0%, rgba(6, 20, 13, 0.96) 100%)",
-          border: "1px solid rgba(167, 243, 208, 0.32)",
-          boxShadow: "0 8px 24px -4px rgba(0, 0, 0, 0.8), 0 0 16px -2px rgba(16, 185, 129, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.4)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
+          padding: "3px 8px",
+          borderRadius: "var(--r-xs)",
+          background: "#0C1D16",
+          border: "1px solid #15382A",
+          boxShadow: "var(--shadow-md)",
           display: "flex",
           alignItems: "center",
           gap: 6,
-          transition: "left 0.15s ease, top 0.15s ease",
         }}
       >
-        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>{tooltipLabel}</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--mint)", fontFamily: "var(--font-mono)" }}>
+        <span style={{ fontSize: 10.5, fontWeight: 500, color: "#8CA89A" }}>{tooltipLabel}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "#00C78A", fontFamily: "var(--font-mono)" }}>
           {activeAmount}
         </span>
       </div>
     </div>
   );
 }
-

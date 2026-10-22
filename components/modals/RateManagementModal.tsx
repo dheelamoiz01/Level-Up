@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sliders, Check, X, ShieldAlert, Sparkles, CircleDot } from "lucide-react";
+import { Sliders, Check, X, CircleDot } from "lucide-react";
 import type { ClubTable } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -43,7 +43,6 @@ export function RateManagementModal({
     if (rate && rate > 0) {
       onUpdateTableRate(id, rate);
 
-      // Sync to Supabase
       try {
         const supabase = createClient();
         await supabase
@@ -63,7 +62,6 @@ export function RateManagementModal({
     if (bulkRate > 0) {
       onBulkUpdateRate(bulkKind, bulkRate);
 
-      // Update local inputs
       setRates((prev) => {
         const next = { ...prev };
         tables
@@ -74,7 +72,6 @@ export function RateManagementModal({
         return next;
       });
 
-      // Sync to Supabase
       try {
         const supabase = createClient();
         await supabase
@@ -96,7 +93,7 @@ export function RateManagementModal({
         position: "fixed",
         inset: 0,
         background: "rgba(0, 0, 0, 0.75)",
-        backdropFilter: "blur(12px)",
+        backdropFilter: "blur(6px)",
         zIndex: 9999,
         display: "flex",
         alignItems: "center",
@@ -109,86 +106,86 @@ export function RateManagementModal({
         className="glass-card"
         style={{
           width: "100%",
-          maxWidth: 520,
-          background: "#0D140F",
-          border: "1px solid rgba(0, 230, 118, 0.3)",
-          borderRadius: 20,
-          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 230, 118, 0.15)",
-          padding: 24,
+          maxWidth: 480,
+          background: "var(--bg-surface-raised)",
+          border: "1px solid var(--border-default)",
+          borderRadius: "var(--r-md)",
+          boxShadow: "var(--shadow-lg)",
+          padding: 22,
           maxHeight: "90vh",
           overflowY: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
-                background: "rgba(0, 230, 118, 0.12)",
-                border: "1px solid rgba(0, 230, 118, 0.3)",
+                width: 32,
+                height: 32,
+                borderRadius: "var(--r-xs)",
+                background: "rgba(0, 199, 138, 0.08)",
+                border: "1px solid rgba(0, 199, 138, 0.2)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "var(--mint)",
+                color: "var(--accent-primary)",
               }}
             >
-              <Sliders size={18} strokeWidth={2.2} />
+              <Sliders size={15} strokeWidth={2.2} />
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-hero)" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
                 Table Hourly Rates
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                Manager pricing controls &amp; floor overrides
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                Manage base pricing per cuesport category
               </div>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            style={{ all: "unset", color: "var(--muted)", cursor: "pointer", padding: 4 }}
+            style={{ all: "unset", color: "var(--text-muted)", cursor: "pointer", padding: 2 }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {savedSuccess && (
           <div
             style={{
-              padding: "10px 14px",
-              borderRadius: 10,
-              background: "rgba(0, 230, 118, 0.1)",
-              border: "1px solid rgba(0, 230, 118, 0.4)",
-              color: "var(--mint)",
-              fontSize: 12.5,
+              padding: "8px 12px",
+              borderRadius: "var(--r-xs)",
+              background: "rgba(0, 199, 138, 0.08)",
+              border: "1px solid rgba(0, 199, 138, 0.25)",
+              color: "var(--accent-primary)",
+              fontSize: 12,
               fontWeight: 600,
-              marginBottom: 16,
+              marginBottom: 14,
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: 6,
             }}
           >
-            <Check size={15} strokeWidth={2.5} />
-            <span>Rates updated and synchronized to floor telemetry</span>
+            <Check size={14} strokeWidth={2.5} />
+            <span>Rates updated and synchronized</span>
           </div>
         )}
 
         {/* Bulk Category Rate Preset */}
         <div
-          className="glass-card-inset"
           style={{
-            padding: 14,
-            borderRadius: 14,
-            marginBottom: 20,
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            padding: 12,
+            borderRadius: "var(--r-xs)",
+            marginBottom: 16,
+            background: "var(--bg-surface-inset)",
+            border: "1px solid var(--border-subtle)",
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-hero)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-            <CircleDot size={13} style={{ color: "var(--mint)" }} />
-            <span>Category Bulk Rate Setter</span>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
+            <CircleDot size={12} style={{ color: "var(--accent-primary)" }} />
+            <span>Category Bulk Setter</span>
           </div>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -196,57 +193,57 @@ export function RateManagementModal({
               value={bulkKind}
               onChange={(e) => setBulkKind(e.target.value as "Royal" | "Snooker" | "Pool")}
               style={{
-                background: "rgba(0, 0, 0, 0.4)",
-                border: "1px solid rgba(255, 255, 255, 0.12)",
-                borderRadius: 8,
-                padding: "6px 12px",
-                color: "var(--text)",
-                fontSize: 12.5,
-                fontWeight: 600,
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-default)",
+                borderRadius: "var(--r-xs)",
+                padding: "5px 10px",
+                color: "var(--text-primary)",
+                fontSize: 12,
+                fontWeight: 500,
               }}
             >
-              <option value="Royal">All Royal Tables (VIP)</option>
-              <option value="Snooker">All Snooker Tables (12ft)</option>
+              <option value="Royal">Royal Tables (VIP)</option>
+              <option value="Snooker">Snooker Tables (12ft)</option>
               <option value="Pool">Pool Table (9ft)</option>
             </select>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 700 }}>₹</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>₹</span>
               <input
                 type="number"
                 value={bulkRate}
                 onChange={(e) => setBulkRate(Number(e.target.value))}
                 style={{
-                  width: 90,
-                  background: "rgba(0, 0, 0, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  borderRadius: 8,
-                  padding: "6px 10px",
-                  color: "var(--mint)",
-                  fontSize: 13,
-                  fontWeight: 700,
+                  width: 75,
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-default)",
+                  borderRadius: "var(--r-xs)",
+                  padding: "5px 8px",
+                  color: "var(--accent-primary)",
+                  fontSize: 12,
+                  fontWeight: 600,
                   fontFamily: "var(--font-mono)",
                 }}
               />
-              <span style={{ fontSize: 11, color: "var(--muted)" }}>/hr</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>/hr</span>
             </div>
 
             <button
               onClick={handleApplyBulk}
               className="btn btn-primary"
-              style={{ height: 32, padding: "0 14px", fontSize: 12, fontWeight: 700, marginLeft: "auto" }}
+              style={{ height: 28, padding: "0 10px", fontSize: 11.5, marginLeft: "auto" }}
             >
-              Apply to Category
+              Apply
             </button>
           </div>
         </div>
 
-        {/* 5 Specific Tables List */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-          Individual Table Overrides (5 Tables)
+        {/* Individual Tables List */}
+        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+          Individual Table Overrides
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {tables.map((t) => {
             const currentVal = rates[t.id] ?? t.hourly_rate;
             const isModified = currentVal !== t.hourly_rate;
@@ -258,71 +255,70 @@ export function RateManagementModal({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  padding: "10px 14px",
-                  borderRadius: 12,
-                  background: "rgba(255, 255, 255, 0.03)",
-                  border: "1px solid rgba(255, 255, 255, 0.06)",
+                  padding: "8px 12px",
+                  borderRadius: "var(--r-xs)",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
                 }}
               >
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-hero)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                       {t.name}
                     </span>
                     <span
                       style={{
-                        fontSize: 10.5,
+                        fontSize: 10,
                         fontWeight: 600,
-                        padding: "2px 7px",
-                        borderRadius: 6,
-                        background: t.kind === "Royal" ? "rgba(0, 230, 118, 0.15)" : "rgba(255, 255, 255, 0.06)",
-                        color: t.kind === "Royal" ? "var(--mint)" : "var(--text-secondary)",
-                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        padding: "1px 5px",
+                        borderRadius: "var(--r-xs)",
+                        background: "var(--bg-surface-inset)",
+                        color: "var(--text-muted)",
+                        border: "1px solid var(--border-subtle)",
                       }}
                     >
                       {t.kind}
                     </span>
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
-                    Status: <span style={{ color: t.status === "playing" ? "var(--mint)" : "var(--text-secondary)" }}>{t.status}</span>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>
+                    Status: <span style={{ color: t.status === "playing" ? "var(--accent-primary)" : "var(--text-muted)" }}>{t.status}</span>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 700 }}>₹</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>₹</span>
                     <input
                       type="number"
                       value={currentVal}
                       onChange={(e) => handleRateChange(t.id, Number(e.target.value))}
                       style={{
-                        width: 80,
-                        background: "rgba(0, 0, 0, 0.5)",
-                        border: isModified ? "1px solid var(--mint)" : "1px solid rgba(255, 255, 255, 0.14)",
-                        borderRadius: 8,
-                        padding: "6px 8px",
-                        color: "var(--mint)",
-                        fontSize: 13,
-                        fontWeight: 700,
+                        width: 70,
+                        background: "var(--bg-surface-inset)",
+                        border: isModified ? "1px solid var(--accent-primary)" : "1px solid var(--border-default)",
+                        borderRadius: "var(--r-xs)",
+                        padding: "4px 6px",
+                        color: "var(--accent-primary)",
+                        fontSize: 12,
+                        fontWeight: 600,
                         fontFamily: "var(--font-mono)",
                         textAlign: "right",
                       }}
                     />
-                    <span style={{ fontSize: 11, color: "var(--muted)" }}>/hr</span>
+                    <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>/hr</span>
                   </div>
 
                   <button
                     onClick={() => handleSaveIndividual(t.id)}
                     className="btn"
                     style={{
-                      height: 30,
-                      padding: "0 10px",
-                      fontSize: 11.5,
+                      height: 26,
+                      padding: "0 8px",
+                      fontSize: 11,
                       fontWeight: 600,
-                      background: isModified ? "var(--mint)" : "rgba(255, 255, 255, 0.06)",
-                      color: isModified ? "#02160D" : "var(--text-secondary)",
+                      background: isModified ? "var(--accent-primary)" : "transparent",
+                      color: isModified ? "#03140C" : "var(--text-secondary)",
                     }}
-                    title="Save table rate"
                   >
                     Save
                   </button>
@@ -332,9 +328,9 @@ export function RateManagementModal({
           })}
         </div>
 
-        <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end" }}>
-          <button className="btn btn-primary" onClick={onClose} style={{ height: 36, padding: "0 18px", fontSize: 13, fontWeight: 700 }}>
-            Done
+        <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+          <button className="btn" onClick={onClose} style={{ height: 32, padding: "0 14px", fontSize: 12 }}>
+            Close
           </button>
         </div>
       </div>

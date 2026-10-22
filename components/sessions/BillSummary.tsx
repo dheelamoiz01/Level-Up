@@ -40,15 +40,15 @@ export function BillSummary({
     <section
       className="bill glass-card-inset"
       style={{
-        borderRadius: "var(--r-md)",
-        padding: "16px",
+        borderRadius: "var(--r-sm)",
+        padding: "14px",
       }}
     >
       <div className="bill-row">
         <span>
-          Table Play Time <span className="muted" style={{ fontSize: 12 }}>({playTime})</span>
+          Table Play Time <span className="muted" style={{ fontSize: 11.5 }}>({playTime})</span>
         </span>
-        <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-mono)" }}>
+        <span style={{ fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
           ₹{playCharge}
         </span>
       </div>
@@ -57,20 +57,20 @@ export function BillSummary({
         <div className="bill-row" key={l.product.id} style={{ alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span>{l.product.name}</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,0.3)", borderRadius: 6, padding: "2px 4px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--r-xs)", padding: "1px 3px" }}>
               <button
                 onClick={() => onUpdateQty?.(l.product.id, -1)}
-                style={{ all: "unset", cursor: "pointer", color: "var(--muted)", padding: 2 }}
+                style={{ all: "unset", cursor: "pointer", color: "var(--text-muted)", padding: 2 }}
                 title="Decrease"
               >
                 <Minus size={11} />
               </button>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--mint)", minWidth: 16, textAlign: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-primary)", minWidth: 16, textAlign: "center" }}>
                 {l.qty}
               </span>
               <button
                 onClick={() => onUpdateQty?.(l.product.id, 1)}
-                style={{ all: "unset", cursor: "pointer", color: "var(--muted)", padding: 2 }}
+                style={{ all: "unset", cursor: "pointer", color: "var(--text-muted)", padding: 2 }}
                 title="Increase"
               >
                 <Plus size={11} />
@@ -79,13 +79,13 @@ export function BillSummary({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: "var(--font-mono)" }}>
+            <span style={{ fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
               ₹{l.product.price * l.qty}
             </span>
             {onRemoveLine && (
               <button
                 onClick={() => onRemoveLine(l.product.id)}
-                style={{ all: "unset", cursor: "pointer", color: "var(--muted)", padding: 2 }}
+                style={{ all: "unset", cursor: "pointer", color: "var(--text-muted)", padding: 2 }}
                 title="Remove item"
               >
                 <Trash2 size={13} />
@@ -96,7 +96,7 @@ export function BillSummary({
       ))}
 
       {lines.length === 0 && (
-        <div className="bill-row muted" style={{ fontStyle: "italic", fontSize: 12.5 }}>
+        <div className="bill-row muted" style={{ fontStyle: "italic", fontSize: 12 }}>
           No food or drinks added
         </div>
       )}
@@ -105,8 +105,8 @@ export function BillSummary({
       <div
         style={{
           padding: "8px 0",
-          borderTop: "1px solid var(--glass-border-subtle)",
-          borderBottom: "1px solid var(--glass-border-subtle)",
+          borderTop: "1px solid var(--border-subtle)",
+          borderBottom: "1px solid var(--border-subtle)",
           margin: "8px 0",
           display: "flex",
           justifyContent: "space-between",
@@ -114,12 +114,12 @@ export function BillSummary({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-          <Tag size={13} style={{ color: "var(--mint)" }} />
+          <Tag size={13} style={{ color: "var(--accent-primary)" }} />
           <span>Discount (Editable)</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>-₹</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>-₹</span>
           <input
             type="number"
             min={0}
@@ -128,11 +128,11 @@ export function BillSummary({
             onChange={(e) => onUpdateDiscount?.(Number(e.target.value) || 0, discountReason)}
             style={{
               width: 60,
-              background: "rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 6,
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-default)",
+              borderRadius: "var(--r-xs)",
               padding: "3px 6px",
-              color: "var(--mint)",
+              color: "var(--accent-primary)",
               fontSize: 12,
               fontWeight: 700,
               fontFamily: "var(--font-mono)",
@@ -144,7 +144,7 @@ export function BillSummary({
 
       <div className="bill-row total" style={{ marginTop: 4 }}>
         <span>Total Due</span>
-        <span style={{ color: "var(--mint)", fontSize: 20, fontFamily: "var(--font-mono)" }}>
+        <span style={{ color: "var(--accent-primary)", fontSize: 18, fontFamily: "var(--font-mono)", fontWeight: 800 }}>
           ₹{total}
         </span>
       </div>
@@ -159,7 +159,7 @@ export function BillSummary({
       <div
         className="bill-row"
         style={{
-          borderTop: "1px dashed var(--glass-border-hi)",
+          borderTop: "1px solid var(--border-subtle)",
           borderBottom: 0,
           paddingTop: 10,
           marginTop: 6,
@@ -168,11 +168,12 @@ export function BillSummary({
         <span style={{ fontWeight: 600 }}>Balance to Settle</span>
         <span
           className="badge"
+          data-s={due > 0 ? "paused" : "playing"}
           style={{
-            color: due > 0 ? "var(--amber)" : "var(--mint)",
-            fontSize: 13,
-            padding: "4px 12px",
+            fontSize: 12.5,
+            padding: "3px 10px",
             fontFamily: "var(--font-mono)",
+            fontWeight: 700,
           }}
         >
           ₹{due}

@@ -1,15 +1,14 @@
 import type { ClubTable } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { Clock, User, Banknote } from "lucide-react";
+import { Clock, User } from "lucide-react";
 
-const felt: Record<ClubTable["status"], [string, string]> = {
-  available: ["#155e3b", "#0a3822"],
-  playing: ["#10b981", "#064e3b"],
-  paused: ["#b45309", "#78350f"],
-  maintenance: ["#334155", "#1e293b"],
+const feltSurface: Record<ClubTable["status"], [string, string]> = {
+  available: ["#071A12", "#040F0A"],
+  playing: ["#0B2B1E", "#061A12"],
+  paused: ["#1C1608", "#120E05"],
+  maintenance: ["#141E19", "#0C1310"],
 };
 
-/** Presentational only. Wire `onSelect` and real session data later. */
 export function PoolTableCard({
   table,
   onSelect,
@@ -17,31 +16,30 @@ export function PoolTableCard({
   table: ClubTable;
   onSelect?: (t: ClubTable) => void;
 }) {
-  const [a, b] = felt[table.status];
+  const [f1, f2] = feltSurface[table.status];
   const id = `felt-grad-${table.id}`;
   const pockets = [
     [16, 16],
-    [100, 12],
+    [100, 13],
     [184, 16],
     [16, 94],
-    [100, 98],
+    [100, 97],
     [184, 94],
   ];
 
   return (
     <button
-      className="glass-card glass-card-raised table-card"
-      data-s={table.status}
+      className="table-card"
       onClick={() => onSelect?.(table)}
-      aria-label={`Table ${table.number}, ${table.status}`}
+      aria-label={`${table.name}, ${table.status}`}
     >
       <div className="row">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
             style={{
-              fontSize: 15,
-              fontWeight: 800,
-              color: "var(--text-hero)",
+              fontSize: 14,
+              fontWeight: 700,
+              color: "var(--text-primary)",
               letterSpacing: "-0.01em",
             }}
           >
@@ -49,13 +47,13 @@ export function PoolTableCard({
           </span>
           <span
             style={{
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: 600,
-              color: "var(--muted)",
-              background: "rgba(255, 255, 255, 0.04)",
-              padding: "2px 7px",
+              color: "var(--text-muted)",
+              background: "var(--bg-surface-inset)",
+              padding: "1px 6px",
               borderRadius: "var(--r-xs)",
-              border: "1px solid var(--glass-border-subtle)",
+              border: "1px solid var(--border-subtle)",
               fontFamily: "var(--font-mono)",
             }}
           >
@@ -65,91 +63,72 @@ export function PoolTableCard({
         <StatusBadge status={table.status} />
       </div>
 
-      <div style={{ padding: "4px 0", width: "100%" }}>
-        <svg viewBox="0 0 200 110" width="100%" aria-hidden style={{ borderRadius: 12, overflow: "hidden" }}>
+      {/* Architectural Cue Table Surface */}
+      <div style={{ padding: "2px 0", width: "100%" }}>
+        <svg viewBox="0 0 200 110" width="100%" aria-hidden style={{ borderRadius: 6, overflow: "hidden" }}>
           <defs>
-            <radialGradient id={id} cx=".5" cy=".4" r=".85">
-              <stop offset="0%" stopColor={a} />
-              <stop offset="100%" stopColor={b} />
-            </radialGradient>
-            <linearGradient id="cushion-gloss" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(255, 255, 255, 0.15)" />
-              <stop offset="100%" stopColor="rgba(0, 0, 0, 0.4)" />
+            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={f1} />
+              <stop offset="100%" stopColor={f2} />
             </linearGradient>
           </defs>
 
-          {/* Deep slate & wood table rail */}
-          <rect x="2" y="2" width="196" height="106" rx="14" fill="#0d1410" stroke="#1d2d24" strokeWidth="1.5" />
-          <rect x="2" y="2" width="196" height="106" rx="14" fill="url(#cushion-gloss)" />
+          {/* Deep slate cushion rail */}
+          <rect x="2" y="2" width="196" height="106" rx="6" fill="#050E0A" stroke="#15382A" strokeWidth="1" />
 
-          {/* Emerald playing surface */}
+          {/* Tournament Felt Surface */}
           <rect
             x="12"
             y="12"
             width="176"
             height="86"
-            rx="8"
+            rx="4"
             fill={`url(#${id})`}
-            className={table.status === "playing" ? "felt-pulse" : ""}
+            stroke="#0C261B"
+            strokeWidth="0.75"
           />
 
-          {/* Baulk line */}
-          <line x1="60" y1="14" x2="60" y2="96" stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1" strokeDasharray="3 2" />
+          {/* Subtle baulk line */}
+          <line x1="56" y1="13" x2="56" y2="97" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="0.75" strokeDasharray="3 2" />
 
           {/* Table pockets */}
           {pockets.map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r="6.5" fill="#020604" stroke="#14241b" strokeWidth="1" />
+            <circle key={i} cx={x} cy={y} r="5.5" fill="#020604" stroke="#0E2319" strokeWidth="0.75" />
           ))}
 
-          {/* Active balls on table if playing */}
+          {/* Active balls when playing */}
           {table.status === "playing" && (
             <>
-              {/* Cue ball with subtle drop shadow */}
-              <circle cx="50" cy="55" r="3.75" fill="#f8fafc" />
-              {/* Object balls */}
-              <circle cx="120" cy="55" r="3.75" fill="#ef4444" />
-              <circle cx="128" cy="50.5" r="3.75" fill="#f59e0b" />
-              <circle cx="128" cy="59.5" r="3.75" fill="#3b82f6" />
-              <circle cx="136" cy="46" r="3.75" fill="#10b981" />
-              <circle cx="136" cy="55" r="3.75" fill="#1e293b" />
-              <circle cx="136" cy="64" r="3.75" fill="#a855f7" />
+              <circle cx="48" cy="55" r="3.2" fill="#F8FAFC" />
+              <circle cx="118" cy="55" r="3.2" fill="#EF4444" />
+              <circle cx="125" cy="51" r="3.2" fill="#F59E0B" />
+              <circle cx="125" cy="59" r="3.2" fill="#3B82F6" />
+              <circle cx="132" cy="47" r="3.2" fill="#10B981" />
+              <circle cx="132" cy="55" r="3.2" fill="#1E293B" />
+              <circle cx="132" cy="63" r="3.2" fill="#A855F7" />
             </>
-          )}
-
-          {table.status === "available" && (
-            <circle cx="128" cy="55" r="14" fill="rgba(92, 242, 176, 0.08)" stroke="rgba(92, 242, 176, 0.2)" strokeDasharray="3 3" />
           )}
         </svg>
       </div>
 
       <div className="stats">
         <div>
-          <div className="eyebrow" style={{ gap: 4 }}>
+          <div className="eyebrow" style={{ gap: 4, marginBottom: 2 }}>
             <User size={10} />
-            Player
+            <span>Player</span>
           </div>
-          <span style={{ fontWeight: 600, color: table.player ? "var(--text-hero)" : "var(--muted)" }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: table.player ? "var(--text-primary)" : "var(--text-muted)" }}>
             {table.player ?? "None"}
           </span>
         </div>
 
         <div>
-          <div className="eyebrow" style={{ gap: 4 }}>
+          <div className="eyebrow" style={{ gap: 4, marginBottom: 2 }}>
             <Clock size={10} />
-            Duration
+            <span>Duration</span>
           </div>
-          <span style={{ fontWeight: 600, color: "var(--text)" }}>
-            {table.elapsed ?? "00:00"}
-          </span>
-        </div>
-
-        <div>
-          <div className="eyebrow" style={{ gap: 4 }}>
-            <Banknote size={10} />
-            Current Bill
-          </div>
-          <span style={{ fontWeight: 700, color: table.bill != null ? "var(--mint)" : "var(--text-secondary)" }}>
-            {table.bill != null ? `₹${table.bill}` : `₹0`}
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: table.elapsed ? "var(--text-primary)" : "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+            {table.elapsed ?? "00:00:00"}
           </span>
         </div>
       </div>

@@ -20,72 +20,76 @@ export default function Page() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "var(--s-4)" }}>
-        <div className="glass" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: "var(--r-sm)",
-                background: "rgba(16, 185, 129, 0.12)",
-                color: "var(--mint)",
+                width: 34,
+                height: 34,
+                borderRadius: "var(--r-xs)",
+                background: "var(--bg-surface-inset)",
+                border: "1px solid var(--border-subtle)",
+                color: "var(--accent-primary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Sliders size={18} />
+              <Sliders size={16} />
             </div>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-hero)" }}>Hourly Table Rates</h3>
-              <span className="muted" style={{ fontSize: 12 }}>Default pricing per cuesport category</span>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Hourly Table Rates</h3>
+              <span className="muted" style={{ fontSize: 11.5 }}>Default pricing per cuesport category</span>
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 14 }}>Royal Table Rate (VIP)</span>
+              <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Royal Table Rate (VIP)</span>
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontWeight: 700,
-                  color: "var(--mint)",
-                  background: "var(--glass-surface-inset)",
+                  color: "var(--accent-primary)",
+                  background: "var(--bg-surface-inset)",
                   padding: "4px 10px",
-                  borderRadius: "var(--r-sm)",
-                  border: "1px solid var(--glass-border)",
+                  borderRadius: "var(--r-xs)",
+                  border: "1px solid var(--border-subtle)",
+                  fontSize: 12.5,
                 }}
               >
                 ₹500 / hr
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 14 }}>Snooker Table Rate</span>
+              <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Snooker Table Rate</span>
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontWeight: 700,
-                  color: "var(--mint)",
-                  background: "var(--glass-surface-inset)",
+                  color: "var(--accent-primary)",
+                  background: "var(--bg-surface-inset)",
                   padding: "4px 10px",
-                  borderRadius: "var(--r-sm)",
-                  border: "1px solid var(--glass-border)",
+                  borderRadius: "var(--r-xs)",
+                  border: "1px solid var(--border-subtle)",
+                  fontSize: 12.5,
                 }}
               >
                 ₹350 / hr
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 14 }}>Pool Table Rate</span>
+              <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Pool Table Rate</span>
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontWeight: 700,
-                  color: "var(--mint)",
-                  background: "var(--glass-surface-inset)",
+                  color: "var(--accent-primary)",
+                  background: "var(--bg-surface-inset)",
                   padding: "4px 10px",
-                  borderRadius: "var(--r-sm)",
-                  border: "1px solid var(--glass-border)",
+                  borderRadius: "var(--r-xs)",
+                  border: "1px solid var(--border-subtle)",
+                  fontSize: 12.5,
                 }}
               >
                 ₹250 / hr
@@ -94,40 +98,42 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="glass" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: "var(--r-sm)",
-                background: "rgba(16, 185, 129, 0.12)",
-                color: "var(--mint)",
+                width: 34,
+                height: 34,
+                borderRadius: "var(--r-xs)",
+                background: "var(--bg-surface-inset)",
+                border: "1px solid var(--border-subtle)",
+                color: "var(--accent-primary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Shield size={18} />
+              <Shield size={16} />
             </div>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-hero)" }}>Staff &amp; Clearance PIN</h3>
-              <span className="muted" style={{ fontSize: 12 }}>Restricted access for discounts and voids</span>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Staff &amp; Clearance PIN</h3>
+              <span className="muted" style={{ fontSize: 11.5 }}>Restricted access for discounts and voids</span>
             </div>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 14 }}>Manager Master PIN</span>
+            <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Manager Master PIN</span>
             <span
               style={{
                 fontFamily: "var(--font-mono)",
                 fontWeight: 700,
-                color: "var(--text-hero)",
-                background: "var(--glass-surface-inset)",
+                color: "var(--text-primary)",
+                background: "var(--bg-surface-inset)",
                 padding: "4px 12px",
-                borderRadius: "var(--r-sm)",
-                border: "1px solid var(--glass-border)",
+                borderRadius: "var(--r-xs)",
+                border: "1px solid var(--border-subtle)",
                 letterSpacing: 3,
+                fontSize: 12.5,
               }}
             >
               ••••

@@ -6,7 +6,7 @@ import { SessionDrawer } from "@/components/sessions/SessionDrawer";
 import { RateManagementModal } from "@/components/modals/RateManagementModal";
 import { initialTables } from "@/lib/mock/tables";
 import type { ClubTable, TableStatus } from "@/lib/types";
-import { Sliders, RefreshCw, CircleDot } from "lucide-react";
+import { Sliders } from "lucide-react";
 
 const filters: ("all" | TableStatus)[] = [
   "all",
@@ -35,7 +35,6 @@ export default function LiveTables() {
 
   // Quick stats
   const activeCount = tables.filter((t) => t.status === "playing").length;
-  const availableCount = tables.filter((t) => t.status === "available").length;
 
   const handleUpdateTableRate = (tableId: string, newRate: number) => {
     setTables((prev) =>
@@ -53,10 +52,10 @@ export default function LiveTables() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow eyebrow-accent" style={{ marginBottom: 4 }}>
-            <span>Floor Status</span>
-            <span style={{ opacity: 0.5 }}>•</span>
-            <span style={{ color: "var(--muted)" }}>{activeCount} Active / 5 Tables</span>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>
+            <span>Arena Floor</span>
+            <span style={{ opacity: 0.4 }}>•</span>
+            <span>{activeCount} Active Sessions</span>
           </div>
           <h1>Live Arena Tables</h1>
         </div>
@@ -66,29 +65,21 @@ export default function LiveTables() {
           <button
             onClick={() => setRatesModalOpen(true)}
             className="btn"
-            style={{
-              height: 34,
-              padding: "0 14px",
-              fontSize: 12,
-              fontWeight: 700,
-              gap: 6,
-              background: "rgba(0, 230, 118, 0.08)",
-              border: "1px solid rgba(0, 230, 118, 0.25)",
-              color: "var(--mint)",
-            }}
+            style={{ height: 32, fontSize: 11.5, gap: 5 }}
           >
-            <Sliders size={13} strokeWidth={2.2} />
-            <span>Edit Rates</span>
+            <Sliders size={12} />
+            <span>Table Rates</span>
           </button>
 
-          {/* Filter Capsule Group */}
+          {/* Clean Segmented Filter Group */}
           <div
-            className="glass-card-inset"
             style={{
               display: "inline-flex",
-              padding: "4px",
-              borderRadius: "var(--r-full)",
-              gap: 4,
+              padding: "2px",
+              borderRadius: "var(--r-sm)",
+              background: "var(--bg-surface-inset)",
+              border: "1px solid var(--border-subtle)",
+              gap: 2,
               flexWrap: "wrap",
             }}
           >
@@ -99,25 +90,29 @@ export default function LiveTables() {
               return (
                 <button
                   key={x}
-                  className={`btn ${active ? "btn-primary" : ""}`}
                   style={{
-                    height: 34,
-                    padding: "0 13px",
-                    fontSize: 12,
-                    fontWeight: active ? 700 : 500,
-                    boxShadow: active ? "var(--shadow-emerald-pill)" : "none",
+                    all: "unset",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    height: 28,
+                    padding: "0 10px",
+                    borderRadius: "var(--r-xs)",
+                    fontSize: 11.5,
+                    fontWeight: active ? 600 : 500,
+                    color: active ? "var(--text-primary)" : "var(--text-muted)",
+                    background: active ? "var(--bg-surface-raised)" : "transparent",
+                    border: active ? "1px solid var(--border-default)" : "1px solid transparent",
+                    cursor: "pointer",
                   }}
                   onClick={() => setF(x)}
                 >
                   <span>{labels[x]}</span>
                   <span
                     style={{
-                      fontSize: 11,
-                      opacity: active ? 0.9 : 0.6,
+                      fontSize: 10,
                       fontFamily: "var(--font-mono)",
-                      background: active ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.08)",
-                      padding: "1px 6px",
-                      borderRadius: "var(--r-full)",
+                      color: active ? "var(--accent-primary)" : "var(--text-dim)",
                     }}
                   >
                     {count}
