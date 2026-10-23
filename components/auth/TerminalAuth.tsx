@@ -84,48 +84,19 @@ export function TerminalAuth() {
             userSelect: "none",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 8,
-                background: "rgba(0, 199, 138, 0.12)",
-                border: "1px solid rgba(0, 199, 138, 0.35)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden>
-                <circle cx="16" cy="16" r="14" stroke="#00C78A" strokeWidth="1.8" strokeOpacity="0.85" />
-                <path d="M16 7L23 16H18V25H14V16H9L16 7Z" fill="#00C78A" />
-              </svg>
-            </div>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 22,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                color: "#ECF5F0",
-                lineHeight: 1,
-              }}
-            >
-              LEVEL <span style={{ color: "var(--accent-primary)" }}>UP</span>
-            </h1>
-          </div>
-          <span
+          <h1
             style={{
-              fontSize: 10.5,
-              fontWeight: 600,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: "#8CA89A",
+              margin: 0,
+              fontSize: 26,
+              fontWeight: 800,
+              letterSpacing: "0.12em",
+              color: "#ECF5F0",
+              lineHeight: 1,
+              textAlign: "center",
             }}
           >
-            Cue Club Management
-          </span>
+            LEVEL <span style={{ color: "var(--accent-primary)" }}>UP</span>
+          </h1>
         </div>
 
         {/* Refined Translucent Login Card */}
