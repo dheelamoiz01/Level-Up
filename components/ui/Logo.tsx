@@ -28,21 +28,16 @@ export function Logo({ compact = false }: { compact?: boolean }) {
         </span>
       </div>
       {!compact && (
-        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
-          <span
-            style={{
-              fontWeight: 800,
-              letterSpacing: ".08em",
-              fontSize: 14,
-              color: "var(--text-primary)",
-            }}
-          >
-            LEVEL <span style={{ color: "var(--accent-primary)" }}>UP</span>
-          </span>
-          <span style={{ fontSize: 9.5, letterSpacing: ".08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
-            Cue Club
-          </span>
-        </div>
+        <span
+          style={{
+            fontWeight: 800,
+            letterSpacing: ".08em",
+            fontSize: 15,
+            color: "var(--text-primary)",
+          }}
+        >
+          LEVEL <span style={{ color: "var(--accent-primary)" }}>UP</span>
+        </span>
       )}
     </div>
   );

@@ -30,9 +30,17 @@ export function FloorTableCard({
   onManageSession,
 }: FloorTableCardProps) {
   const isPlaying = table.status === "playing";
-  const remainingSec = table.remaining_seconds ?? 0;
-  const isTimeUp = isPlaying && Boolean(table.scheduled_end_at) && remainingSec <= 0;
-  const isEndingSoon = isPlaying && Boolean(table.scheduled_end_at) && remainingSec > 0 && remainingSec <= 300; // <= 5 mins
+  const remainingSec = useMemo(() => {
+    if (!isPlaying || !table.scheduled_end_at) return 0;
+    const diff = Math.floor((new Date(table.scheduled_end_at).getTime() - Date.now()) / 1000);
+    return Math.max(0, diff);
+  }, [isPlaying, table.scheduled_end_at, table.remaining_seconds]);
+
+  const isTimeUp = isPlaying && Boolean(table.scheduled_end_at) && (
+    (table.remaining_seconds ?? 0) <= 0 ||
+    Boolean(table.scheduled_end_at && new Date(table.scheduled_end_at).getTime() <= Date.now())
+  );
+  const isEndingSoon = isPlaying && !isTimeUp && remainingSec > 0 && remainingSec <= 300; // <= 5 mins
 
   // Theme configuration per cuesport category (calm, authentic, professional)
   const theme = useMemo(() => {
@@ -148,16 +156,17 @@ export function FloorTableCard({
                   fontWeight: 700,
                   padding: "3px 8px",
                   borderRadius: "var(--r-xs)",
-                  background: "rgba(239, 68, 68, 0.15)",
-                  border: "1px solid rgba(239, 68, 68, 0.35)",
-                  color: "var(--danger)",
+                  background: "rgba(245, 158, 11, 0.16)",
+                  border: "1px solid rgba(245, 158, 11, 0.45)",
+                  color: "var(--amber)",
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
+                  letterSpacing: "0.04em",
                 }}
               >
                 <AlertTriangle size={12} />
-                Time Up
+                TIME UP
               </span>
             ) : isEndingSoon ? (
               <span
@@ -354,7 +363,7 @@ export function FloorTableCard({
                 background: "rgba(17, 19, 21, 0.88)",
                 backdropFilter: "blur(4px)",
                 border: isTimeUp
-                  ? "1px solid rgba(239, 68, 68, 0.4)"
+                  ? "1px solid rgba(245, 158, 11, 0.55)"
                   : "1px solid rgba(48, 53, 58, 0.8)",
                 borderRadius: "var(--r-xs)",
                 padding: "4px 8px",
@@ -365,7 +374,7 @@ export function FloorTableCard({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-secondary)" }}>
-                <Clock size={11} style={{ color: isTimeUp ? "var(--danger)" : "var(--text-secondary)" }} />
+                <Clock size={11} style={{ color: isTimeUp ? "var(--amber)" : "var(--text-secondary)" }} />
                 <span>Time:</span>
               </div>
 
@@ -374,13 +383,20 @@ export function FloorTableCard({
                   fontSize: 12.5,
                   fontWeight: 700,
                   fontFamily: "var(--font-mono)",
-                  color: isTimeUp ? "var(--danger)" : isEndingSoon ? "var(--amber)" : "var(--accent-primary)",
+                  color: isTimeUp ? "var(--amber)" : isEndingSoon ? "var(--amber)" : "var(--accent-primary)",
                   display: "flex",
                   alignItems: "center",
                   gap: 4,
                 }}
               >
-                {isTimeUp ? "00:00 (Expired)" : formatCountdown(remainingSec)}
+                {isTimeUp ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Clock size={12} style={{ color: "var(--amber)" }} />
+                    00:00
+                  </span>
+                ) : (
+                  formatCountdown(remainingSec)
+                )}
               </div>
             </div>
           )}
@@ -410,7 +426,7 @@ export function FloorTableCard({
                     {table.player}
                   </span>
                 </div>
-                {table.phone && (
+                {table.phone && table.phone !== "null" && (
                   <div style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--text-muted)", fontSize: 11, fontFamily: "var(--font-mono)", flexShrink: 0 }}>
                     <Phone size={10} />
                     <span>{table.phone}</span>
@@ -441,7 +457,7 @@ export function FloorTableCard({
                   style={{
                     width: `${progressPct}%`,
                     height: "100%",
-                    background: isTimeUp ? "var(--danger)" : isEndingSoon ? "var(--amber)" : "var(--accent-primary)",
+                    background: isTimeUp ? "var(--amber)" : isEndingSoon ? "var(--amber)" : "var(--accent-primary)",
                     transition: "width 1s linear",
                   }}
                 />
@@ -473,13 +489,13 @@ export function FloorTableCard({
               fontSize: 12.5,
               fontWeight: 600,
               gap: 6,
-              background: isTimeUp ? "rgba(239, 68, 68, 0.15)" : "var(--bg-surface-raised)",
-              borderColor: isTimeUp ? "rgba(239, 68, 68, 0.4)" : "var(--border-default)",
-              color: isTimeUp ? "var(--danger)" : "var(--text-primary)",
+              background: isTimeUp ? "rgba(245, 158, 11, 0.16)" : "var(--bg-surface-raised)",
+              borderColor: isTimeUp ? "rgba(245, 158, 11, 0.55)" : "var(--border-default)",
+              color: isTimeUp ? "var(--amber)" : "var(--text-primary)",
             }}
           >
             <Sliders size={14} />
-            <span>{isTimeUp ? "Collect Payment" : "Manage Session"}</span>
+            <span>{isTimeUp ? "Manage Expired Session" : "Manage Session"}</span>
           </button>
         ) : (
           <button

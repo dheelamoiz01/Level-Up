@@ -29,7 +29,7 @@ import { NotificationListener } from "@/components/realtime/NotificationListener
 import { useAuth } from "@/lib/auth/AuthContext";
 import { TerminalAuth } from "@/components/auth/TerminalAuth";
 
-// Owner Navigation (8 items as specified)
+// Owner Navigation (Clean 7 items)
 const ownerNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tables", label: "Live Tables", icon: CircleDot },
@@ -38,16 +38,15 @@ const ownerNav = [
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/staff", label: "Staff", icon: UserCheck },
   { href: "/customers", label: "Customers", icon: Users },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-// Manager Navigation (Floor Operations only - 5 items as specified)
+// Manager Navigation (Floor Operations & Table Pricing)
 const managerNav = [
   { href: "/", label: "Live Tables", icon: CircleDot },
   { href: "/sessions", label: "Sessions", icon: Clock },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/payments", label: "Payments", icon: CreditCard },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/pricing", label: "Table Pricing", icon: DollarSign },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -241,16 +240,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             width: "100%",
           }}
         >
-          {/* Quick Lock Button */}
+          {/* Sign Out Button */}
           <button
             onClick={logout}
             className="nav-item"
-            data-tip="Lock Terminal"
+            data-tip="Sign Out"
             style={{ color: "var(--amber)", width: collapsed ? 46 : "100%" }}
-            title={collapsed ? "Lock Terminal" : undefined}
+            title={collapsed ? "Sign Out" : undefined}
           >
             <LogOut size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
-            {!collapsed && <span className="nav-item-label">Lock Terminal</span>}
+            {!collapsed && <span className="nav-item-label">Sign Out</span>}
           </button>
         </div>
       </aside>
@@ -291,7 +290,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 style={{ width: "100%", color: "var(--amber)" }}
               >
                 <LogOut size={16} />
-                <span className="nav-item-label">Lock Terminal</span>
+                <span className="nav-item-label">Sign Out</span>
               </button>
             </div>
           </div>
@@ -329,113 +328,117 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           {/* Right Topbar Controls */}
           <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-            {/* Refresh live floor data */}
-            <button
-              onClick={handleRefresh}
-              className="btn"
-              style={{ width: 34, height: 34, padding: 0 }}
-              title="Refresh live floor data"
-              aria-label="Refresh live data"
-            >
-              <RefreshCw
-                size={14}
-                style={{
-                  animation: refreshing ? "spin 0.6s linear infinite" : "none",
-                  color: "var(--text-muted)",
-                }}
-              />
-            </button>
-
-            {/* Notification Control & Dropdown */}
-            <div className="notif-wrapper" style={{ position: "relative" }}>
-              <button
-                onClick={() => {
-                  setNotifOpen(!notifOpen);
-                  setProfileOpen(false);
-                }}
-                className="btn"
-                style={{ width: 34, height: 34, padding: 0, position: "relative" }}
-                aria-label="System notifications"
-              >
-                <Bell size={15} style={{ color: "var(--text-secondary)" }} />
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 6,
-                    right: 6,
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: "var(--accent-primary)",
-                  }}
-                />
-              </button>
-
-              {notifOpen && (
-                <div
-                  className="dropdown-menu"
-                  style={{
-                    position: "absolute",
-                    top: "calc(100% + 8px)",
-                    right: 0,
-                    width: 280,
-                    padding: "14px",
-                    zIndex: 60,
-                  }}
+            {/* Owner-only Refresh live floor data & Notifications */}
+            {isOwner && (
+              <>
+                <button
+                  onClick={handleRefresh}
+                  className="btn"
+                  style={{ width: 34, height: 34, padding: 0 }}
+                  title="Refresh live floor data"
+                  aria-label="Refresh live data"
                 >
-                  <div
+                  <RefreshCw
+                    size={14}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 10,
-                      paddingBottom: 6,
-                      borderBottom: "1px solid var(--border-subtle)",
+                      animation: refreshing ? "spin 0.6s linear infinite" : "none",
+                      color: "var(--text-muted)",
                     }}
-                  >
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
-                      Live Shift Alerts
-                    </span>
-                    <span className="badge" style={{ fontSize: 10, padding: "2px 6px" }}>
-                      Active
-                    </span>
-                  </div>
+                  />
+                </button>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 5, flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Real-Time Synchronization</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Active cross-terminal session sync</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 5, flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Audio Match Chimes</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Time-up sound notification active</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 10,
-                      paddingTop: 8,
-                      borderTop: "1px solid var(--border-subtle)",
-                      textAlign: "center",
+                {/* Notification Control & Dropdown */}
+                <div className="notif-wrapper" style={{ position: "relative" }}>
+                  <button
+                    onClick={() => {
+                      setNotifOpen(!notifOpen);
+                      setProfileOpen(false);
                     }}
+                    className="btn"
+                    style={{ width: 34, height: 34, padding: 0, position: "relative" }}
+                    aria-label="System notifications"
                   >
-                    <button
-                      style={{ all: "unset", fontSize: 11, color: "var(--accent-primary)", fontWeight: 600, cursor: "pointer" }}
-                      onClick={() => setNotifOpen(false)}
+                    <Bell size={15} style={{ color: "var(--text-secondary)" }} />
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 6,
+                        right: 6,
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: "var(--accent-primary)",
+                      }}
+                    />
+                  </button>
+
+                  {notifOpen && (
+                    <div
+                      className="dropdown-menu"
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 8px)",
+                        right: 0,
+                        width: 280,
+                        padding: "14px",
+                        zIndex: 60,
+                      }}
                     >
-                      Dismiss
-                    </button>
-                  </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 10,
+                          paddingBottom: 6,
+                          borderBottom: "1px solid var(--border-subtle)",
+                        }}
+                      >
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
+                          Live Shift Alerts
+                        </span>
+                        <span className="badge" style={{ fontSize: 10, padding: "2px 6px" }}>
+                          Active
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 5, flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Real-Time Synchronization</div>
+                            <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Active cross-terminal session sync</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 5, flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Audio Match Chimes</div>
+                            <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Time-up sound notification active</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: 10,
+                          paddingTop: 8,
+                          borderTop: "1px solid var(--border-subtle)",
+                          textAlign: "center",
+                        }}
+                      >
+                        <button
+                          style={{ all: "unset", fontSize: 11, color: "var(--accent-primary)", fontWeight: 600, cursor: "pointer" }}
+                          onClick={() => setNotifOpen(false)}
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
 
             {/* Profile Pill & Simplified Dropdown */}
             <div className="user-profile-wrapper" style={{ position: "relative" }}>

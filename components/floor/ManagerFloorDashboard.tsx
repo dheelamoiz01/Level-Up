@@ -20,6 +20,8 @@ import {
   User,
   Phone,
   RefreshCw,
+  Trash2,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import {
@@ -30,6 +32,7 @@ import {
   formatDurationFromStart,
   calculateAccruedBill,
   formatCountdown,
+  voidOrDeleteSession,
 } from "@/lib/turso/service";
 import type { ClubTable, Product, SessionRow, TablePricing } from "@/lib/types";
 import { FloorTableCard } from "./FloorTableCard";
@@ -52,6 +55,32 @@ export function ManagerFloorDashboard() {
   // Modals state
   const [startModalTable, setStartModalTable] = useState<ClubTable | null>(null);
   const [manageModalTable, setManageModalTable] = useState<ClubTable | null>(null);
+  const [deleteConfirmTable, setDeleteConfirmTable] = useState<ClubTable | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmTable || !deleteConfirmTable.current_session_id) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    const res = await voidOrDeleteSession({
+      sessionId: deleteConfirmTable.current_session_id,
+      tableId: deleteConfirmTable.id,
+      tableName: deleteConfirmTable.name,
+      playerName: deleteConfirmTable.player,
+      managerName: user?.username || "manager",
+      reason: deleteReason.trim() || "Deleted by manager from active floor ledger",
+    });
+    if (res.success) {
+      setDeleteConfirmTable(null);
+      setDeleteReason("");
+      await loadFloorData();
+    } else {
+      setDeleteError(res.error || "Failed to delete session.");
+    }
+    setIsDeleting(false);
+  };
 
   // Load real data from Turso
   const loadFloorData = async () => {
@@ -385,7 +414,11 @@ export function ManagerFloorDashboard() {
                   <tr key={t.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                     <td style={{ padding: "10px 16px" }}>
                       <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13 }}>{t.player}</div>
-                      {t.phone && <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{t.phone}</div>}
+                      {t.phone && t.phone !== "null" && (
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                          {t.phone}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: "10px 16px" }}>
                       <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t.name} ({t.kind})</span>
@@ -396,7 +429,7 @@ export function ManagerFloorDashboard() {
                           fontSize: 12,
                           fontFamily: "var(--font-mono)",
                           fontWeight: 600,
-                          color: t.is_time_up ? "var(--danger)" : "var(--accent-primary)",
+                          color: t.is_time_up ? "var(--amber)" : "var(--accent-primary)",
                         }}
                       >
                         {t.is_time_up ? "Expired" : formatCountdown(t.remaining_seconds ?? 0)}
@@ -408,13 +441,33 @@ export function ManagerFloorDashboard() {
                       </span>
                     </td>
                     <td style={{ padding: "10px 16px", textAlign: "right" }}>
-                      <button
-                        onClick={() => setManageModalTable(t)}
-                        className="btn"
-                        style={{ height: 28, fontSize: 11.5, padding: "0 10px" }}
-                      >
-                        Manage
-                      </button>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+                        <button
+                          onClick={() => setManageModalTable(t)}
+                          className="btn"
+                          style={{ height: 28, fontSize: 11.5, padding: "0 10px" }}
+                        >
+                          Manage
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmTable(t)}
+                          className="btn"
+                          title="Void & Delete Session"
+                          style={{
+                            height: 28,
+                            fontSize: 11.5,
+                            padding: "0 8px",
+                            color: "var(--danger)",
+                            borderColor: "rgba(239, 68, 68, 0.35)",
+                            background: "rgba(239, 68, 68, 0.08)",
+                            gap: 4,
+                          }}
+                        >
+                          <Trash2 size={12} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -448,6 +501,145 @@ export function ManagerFloorDashboard() {
             loadFloorData();
           }}
         />
+      )}
+
+      {/* Delete / Void Session Confirmation Modal */}
+      {deleteConfirmTable && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.85)",
+            backdropFilter: "blur(6px)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => {
+            if (!isDeleting) setDeleteConfirmTable(null);
+          }}
+        >
+          <div
+            className="glass-card"
+            style={{
+              width: "100%",
+              maxWidth: 440,
+              background: "var(--bg-surface-raised)",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              borderRadius: "var(--r-md)",
+              padding: 22,
+              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.9)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--danger)" }}>
+                <AlertTriangle size={20} />
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                  Delete &amp; Void Session
+                </h3>
+              </div>
+              <button
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirmTable(null)}
+                style={{ all: "unset", cursor: "pointer", color: "var(--text-muted)" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ fontSize: 12.5, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 16 }}>
+              Are you sure you want to void and delete the active match on{" "}
+              <strong style={{ color: "var(--text-primary)" }}>{deleteConfirmTable.name}</strong> for player{" "}
+              <strong style={{ color: "var(--accent-primary)" }}>{deleteConfirmTable.player || "Walk-in"}</strong>?
+            </div>
+
+            <div
+              style={{
+                background: "rgba(239, 68, 68, 0.08)",
+                border: "1px solid rgba(239, 68, 68, 0.25)",
+                borderRadius: "var(--r-xs)",
+                padding: "10px 12px",
+                fontSize: 11.5,
+                color: "var(--danger)",
+                marginBottom: 16,
+                lineHeight: 1.4,
+              }}
+            >
+              ⚠️ <strong>Owner Notification:</strong> This will instantly free the table back to Available, mark the session as voided, and dispatch an urgent audit alert to the Owner.
+            </div>
+
+            {deleteError && (
+              <div
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "var(--r-xs)",
+                  background: "rgba(239, 68, 68, 0.15)",
+                  color: "var(--danger)",
+                  fontSize: 12,
+                  marginBottom: 14,
+                }}
+              >
+                {deleteError}
+              </div>
+            )}
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 4 }}>
+                Reason for deletion (optional):
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Customer cancelled / accidental start..."
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                style={{
+                  width: "100%",
+                  height: 34,
+                  padding: "0 10px",
+                  background: "var(--bg-surface-inset)",
+                  border: "1px solid var(--border-default)",
+                  borderRadius: "var(--r-xs)",
+                  color: "var(--text-primary)",
+                  fontSize: 12,
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirmTable(null)}
+                className="btn"
+                style={{ flex: 1, height: 36, fontSize: 12.5 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="btn"
+                style={{
+                  flex: 1.2,
+                  height: 36,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  background: "var(--danger)",
+                  borderColor: "var(--danger)",
+                  color: "#fff",
+                  gap: 6,
+                }}
+              >
+                <Trash2 size={14} />
+                <span>{isDeleting ? "Voiding..." : "Confirm Delete"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

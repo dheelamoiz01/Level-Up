@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import type { ClubTable, Product, SessionItem, TablePricing } from "@/lib/types";
 import {
   formatCountdown,
   extendFloorSession,
   addSessionItems,
+  removeSessionItem,
   getSessionItems,
   collectFloorPayment,
 } from "@/lib/turso/service";
@@ -28,6 +29,8 @@ import {
   Sliders,
   Utensils,
   Coffee,
+  Flame,
+  Trash2,
   AlertCircle,
   FileText,
 } from "lucide-react";
@@ -50,11 +53,14 @@ export function ManageSessionModal({
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"items" | "extend" | "payment">("items");
 
-  // Add-on items state
+  // Quick Bill Add-ons state (Chips, Cigarettes, Cold Drinks)
   const [existingItems, setExistingItems] = useState<SessionItem[]>([]);
-  const [pendingQuantities, setPendingQuantities] = useState<Record<string, number>>({});
-  const [activeCategory, setActiveCategory] = useState<string>("All");
-  const [isAddingItems, setIsAddingItems] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<"Chips" | "Cigarettes" | "Cold Drinks" | null>(null);
+  const [customItemName, setCustomItemName] = useState("");
+  const [customQuantity, setCustomQuantity] = useState<number>(1);
+  const [customUnitPrice, setCustomUnitPrice] = useState<string>("");
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [isDeletingItemId, setIsDeletingItemId] = useState<string | null>(null);
 
   // Extend state
   const [isExtending, setIsExtending] = useState(false);
@@ -111,72 +117,88 @@ export function ManageSessionModal({
   const totalReceived = cashVal + upiVal;
   const remainingUdhar = Math.max(0, totalBill - totalReceived);
 
-  // Filtered add-on products
-  const addOnProducts = useMemo(() => {
-    return products.filter((p) => {
-      if (!p.active) return false;
-      if (activeCategory === "All") return true;
-      if (activeCategory === "Snacks" && p.category === "Snacks") return true;
-      if (activeCategory === "Drinks" && p.category === "Drinks") return true;
-      if (activeCategory === "Cigarettes" && (p.category === "Other" || p.name.toLowerCase().includes("mild") || p.name.toLowerCase().includes("gold"))) return true;
-      return true;
-    });
-  }, [products, activeCategory]);
+  // Line total for currently edited custom add-on
+  const customLineTotal = Math.max(0, (customQuantity || 0) * (parseFloat(customUnitPrice) || 0));
 
-  // Handle pending item quantities
-  const handleQuantityChange = (productId: string, delta: number) => {
-    setPendingQuantities((prev) => {
-      const current = prev[productId] || 0;
-      const next = Math.max(0, current + delta);
-      return { ...prev, [productId]: next };
-    });
-  };
-
-  // Add items to session
-  const handleConfirmAddItems = async () => {
+  // Add custom add-on to bill
+  const handleAddCustomItem = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!table.current_session_id) {
       setErrorMsg("Session ID missing on this table.");
       return;
     }
-
-    const itemsToAdd = Object.entries(pendingQuantities)
-      .filter(([_, qty]) => qty > 0)
-      .map(([prodId, qty]) => {
-        const prod = products.find((p) => p.id === prodId)!;
-        return {
-          productId: prodId,
-          productName: prod.name,
-          quantity: qty,
-          unitPrice: prod.price,
-        };
-      });
-
-    if (itemsToAdd.length === 0) {
-      setErrorMsg("Please select at least 1 item to add.");
+    if (!selectedCategory) {
+      setErrorMsg("Please select a category first.");
+      return;
+    }
+    const nameTrimmed = customItemName.trim();
+    if (!nameTrimmed) {
+      setErrorMsg("Please enter an item name (e.g. Lays, Gold Flake, Coke).");
+      return;
+    }
+    const qty = Number(customQuantity);
+    if (!qty || qty <= 0) {
+      setErrorMsg("Quantity must be a positive number.");
+      return;
+    }
+    const price = parseFloat(customUnitPrice);
+    if (isNaN(price) || price < 0) {
+      setErrorMsg("Please enter a valid non-negative price per item.");
       return;
     }
 
-    setIsAddingItems(true);
+    setIsAddingItem(true);
     setErrorMsg(null);
 
     const res = await addSessionItems({
       sessionId: table.current_session_id,
       tableId: table.id,
-      items: itemsToAdd,
+      items: [
+        {
+          productId: `addon_${selectedCategory.toLowerCase().replace(/\s+/g, "_")}_${Date.now()}`,
+          productName: `${nameTrimmed} (${selectedCategory})`,
+          quantity: qty,
+          unitPrice: price,
+        },
+      ],
       managerName: user?.username || "manager",
     });
 
     if (res.success) {
-      setActionFeedback("Refreshments added to match bill.");
-      setPendingQuantities({});
+      setActionFeedback(`Added ${nameTrimmed} (${selectedCategory}) to bill.`);
+      setCustomItemName("");
+      setCustomQuantity(1);
+      setCustomUnitPrice("");
+      setSelectedCategory(null);
       const updated = await getSessionItems(table.current_session_id);
       setExistingItems(updated);
       onSessionUpdated();
       setTimeout(() => setActionFeedback(null), 3000);
     } else {
-      setErrorMsg(res.error || "Failed to add items.");
+      setErrorMsg(res.error || "Failed to add item to bill.");
     }
-    setIsAddingItems(false);
+    setIsAddingItem(false);
+  };
+
+  // Remove existing add-on from bill
+  const handleDeleteItem = async (itemId: string) => {
+    if (!table.current_session_id) return;
+    setIsDeletingItemId(itemId);
+    setErrorMsg(null);
+    const res = await removeSessionItem({
+      itemId,
+      sessionId: table.current_session_id,
+    });
+    if (res.success) {
+      setActionFeedback("Item removed from session bill.");
+      const updated = await getSessionItems(table.current_session_id);
+      setExistingItems(updated);
+      onSessionUpdated();
+      setTimeout(() => setActionFeedback(null), 3000);
+    } else {
+      setErrorMsg(res.error || "Failed to remove item.");
+    }
+    setIsDeletingItemId(null);
   };
 
   // Extend session
@@ -267,11 +289,13 @@ export function ManageSessionModal({
           overflowY: "auto",
           background: "var(--bg-surface-raised)",
           border: isTimeUp
-            ? "1px solid rgba(239, 68, 68, 0.6)"
+            ? "1.5px solid rgba(245, 158, 11, 0.65)"
             : "1px solid var(--border-default)",
           borderRadius: "var(--r-md)",
           padding: 24,
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.9)",
+          boxShadow: isTimeUp
+            ? "0 0 30px rgba(245, 158, 11, 0.2), 0 24px 60px rgba(0, 0, 0, 0.9)"
+            : "0 24px 60px rgba(0, 0, 0, 0.9)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -294,18 +318,75 @@ export function ManageSessionModal({
           </button>
         </div>
 
+        {/* Prominent Session Expired Banner when countdown is 00:00 */}
+        {isTimeUp && (
+          <div
+            style={{
+              padding: "12px 14px",
+              borderRadius: "var(--r-sm)",
+              background: "rgba(245, 158, 11, 0.12)",
+              border: "1.5px solid rgba(245, 158, 11, 0.55)",
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--amber)", fontWeight: 700, fontSize: 13.5, marginBottom: 4 }}>
+              <AlertTriangle size={16} />
+              <span>Session Expired — Action Required</span>
+            </div>
+            <p style={{ fontSize: 11.5, color: "var(--text-secondary)", margin: "0 0 10px 0" }}>
+              Remaining time reached 00:00. Choose an action below to proceed:
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab("extend")}
+                className="btn"
+                style={{
+                  height: 36,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: activeTab === "extend" ? "var(--bg-surface-raised)" : "rgba(245, 158, 11, 0.18)",
+                  borderColor: "rgba(245, 158, 11, 0.5)",
+                  color: "var(--amber)",
+                  gap: 6,
+                }}
+              >
+                <Clock size={13} />
+                <span>Continue Playing</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("payment")}
+                className="btn"
+                style={{
+                  height: 36,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: activeTab === "payment" ? "var(--accent-primary)" : "rgba(0, 199, 138, 0.18)",
+                  borderColor: "rgba(0, 199, 138, 0.5)",
+                  color: activeTab === "payment" ? "#030806" : "var(--accent-primary)",
+                  gap: 6,
+                }}
+              >
+                <Receipt size={13} />
+                <span>Collect Payment</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Live Status & Countdown Banner */}
         <div
           style={{
             padding: "12px 16px",
             borderRadius: "var(--r-sm)",
             background: isTimeUp
-              ? "rgba(239, 68, 68, 0.12)"
+              ? "rgba(245, 158, 11, 0.12)"
               : isEndingSoon
               ? "rgba(245, 158, 11, 0.12)"
               : "var(--bg-surface-inset)",
             border: isTimeUp
-              ? "1px solid rgba(239, 68, 68, 0.35)"
+              ? "1px solid rgba(245, 158, 11, 0.45)"
               : isEndingSoon
               ? "1px solid rgba(245, 158, 11, 0.35)"
               : "1px solid var(--border-subtle)",
@@ -331,13 +412,13 @@ export function ManageSessionModal({
                 fontSize: 18,
                 fontWeight: 800,
                 fontFamily: "var(--font-mono)",
-                color: isTimeUp ? "var(--danger)" : isEndingSoon ? "var(--amber)" : "var(--accent-primary)",
+                color: isTimeUp ? "var(--amber)" : isEndingSoon ? "var(--amber)" : "var(--accent-primary)",
               }}
             >
-              {isTimeUp ? "TIME UP" : formatCountdown(remainingSec)}
+              {isTimeUp ? "00:00" : formatCountdown(remainingSec)}
             </div>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)", textTransform: "uppercase" }}>
-              {isTimeUp ? "Action Required" : "Remaining"}
+            <div style={{ fontSize: 10.5, color: isTimeUp ? "var(--amber)" : "var(--text-muted)", textTransform: "uppercase", fontWeight: isTimeUp ? 700 : 500 }}>
+              {isTimeUp ? "TIME UP" : "Remaining"}
             </div>
           </div>
         </div>
@@ -428,7 +509,7 @@ export function ManageSessionModal({
               padding: "7px 0",
               fontSize: 11.5,
               fontWeight: activeTab === "extend" ? 700 : 500,
-              color: activeTab === "extend" ? "var(--accent-primary)" : "var(--text-muted)",
+              color: activeTab === "extend" ? (isTimeUp ? "var(--amber)" : "var(--accent-primary)") : "var(--text-muted)",
               background: activeTab === "extend" ? "var(--bg-surface-raised)" : "transparent",
               borderRadius: "var(--r-xs)",
               cursor: "pointer",
@@ -439,7 +520,7 @@ export function ManageSessionModal({
             }}
           >
             <Clock size={12} />
-            <span>Extend</span>
+            <span>Continue Playing</span>
           </button>
 
           <button
@@ -461,132 +542,322 @@ export function ManageSessionModal({
             }}
           >
             <Receipt size={12} />
-            <span>Collect Bill</span>
+            <span>Collect Payment</span>
           </button>
         </div>
 
         {/* ===================================================================
-            TAB 1: ADD-ON ITEMS (SNACKS, CIGARETTES, JUICE, DRINKS)
+            TAB 1: QUICK BILL ADD-ONS (CHIPS, CIGARETTES, COLD DRINKS)
             =================================================================== */}
         {activeTab === "items" && (
           <div>
-            {/* Category Filter Pills */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto" }}>
-              {["All", "Snacks", "Drinks", "Cigarettes"].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  style={{
-                    all: "unset",
-                    fontSize: 11,
-                    fontWeight: activeCategory === cat ? 700 : 500,
-                    padding: "3px 10px",
-                    borderRadius: "var(--r-full)",
-                    background: activeCategory === cat ? "var(--accent-primary)" : "var(--bg-surface-inset)",
-                    color: activeCategory === cat ? "#030806" : "var(--text-secondary)",
-                    border: "1px solid var(--border-subtle)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+                Quick Bill Add-ons
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 2 }}>
+                Select a category to enter item name, quantity, and price directly to this bill.
+              </div>
             </div>
 
-            {/* Products Selector Grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 8,
-                maxHeight: 220,
-                overflowY: "auto",
-                marginBottom: 14,
-                paddingRight: 4,
-              }}
-            >
-              {addOnProducts.map((p) => {
-                const qty = pendingQuantities[p.id] || 0;
+            {/* Exactly 3 Category Buttons */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+              {[
+                { key: "Chips" as const, label: "Chips", icon: Utensils },
+                { key: "Cigarettes" as const, label: "Cigarettes", icon: Flame },
+                { key: "Cold Drinks" as const, label: "Cold Drinks", icon: Coffee },
+              ].map(({ key, label, icon: Icon }) => {
+                const isSelected = selectedCategory === key;
                 return (
-                  <div
-                    key={p.id}
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedCategory(null);
+                      } else {
+                        setSelectedCategory(key);
+                        setCustomQuantity(1);
+                      }
+                    }}
                     style={{
-                      background: "var(--bg-surface-inset)",
-                      border: qty > 0 ? "1px solid var(--accent-primary)" : "1px solid var(--border-subtle)",
-                      borderRadius: "var(--r-xs)",
-                      padding: "8px 10px",
+                      all: "unset",
+                      background: isSelected ? "rgba(0, 199, 138, 0.12)" : "var(--bg-surface-inset)",
+                      border: isSelected ? "1.5px solid var(--accent-primary)" : "1px solid var(--border-default)",
+                      borderRadius: "var(--r-sm)",
+                      padding: "10px 8px",
+                      cursor: "pointer",
                       display: "flex",
-                      justifyContent: "space-between",
+                      flexDirection: "column",
                       alignItems: "center",
+                      textAlign: "center",
+                      gap: 6,
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{p.name}</div>
-                      <div style={{ fontSize: 11, color: "var(--accent-primary)", fontFamily: "var(--font-mono)" }}>
-                        ₹{p.price}
-                      </div>
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: "var(--r-xs)",
+                        background: isSelected ? "var(--accent-primary)" : "var(--bg-surface-raised)",
+                        color: isSelected ? "#030806" : "var(--accent-primary)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Icon size={16} />
                     </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <button
-                        type="button"
-                        onClick={() => handleQuantityChange(p.id, -1)}
-                        className="btn"
-                        style={{ width: 22, height: 22, padding: 0, opacity: qty > 0 ? 1 : 0.4 }}
-                      >
-                        <Minus size={10} />
-                      </button>
-                      <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "var(--font-mono)", minWidth: 16, textAlign: "center" }}>
-                        {qty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleQuantityChange(p.id, 1)}
-                        className="btn"
-                        style={{ width: 22, height: 22, padding: 0 }}
-                      >
-                        <Plus size={10} />
-                      </button>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? "var(--accent-primary)" : "var(--text-primary)" }}>
+                      {label}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
 
-            {/* Attached Items Ledger */}
-            {existingItems.length > 0 && (
-              <div
+            {/* Compact Custom Add-on Form */}
+            {selectedCategory && (
+              <form
+                onSubmit={handleAddCustomItem}
                 style={{
                   background: "var(--bg-surface-inset)",
-                  padding: 10,
-                  borderRadius: "var(--r-xs)",
-                  border: "1px solid var(--border-subtle)",
+                  border: "1px solid var(--border-default)",
+                  borderRadius: "var(--r-sm)",
+                  padding: 14,
                   marginBottom: 14,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
                 }}
               >
-                <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>
-                  Items Attached to Match ({existingItems.length})
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
+                      Category:
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: "var(--r-xs)",
+                        background: "rgba(0, 199, 138, 0.15)",
+                        color: "var(--accent-primary)",
+                        border: "1px solid rgba(0, 199, 138, 0.3)",
+                      }}
+                    >
+                      {selectedCategory}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory(null)}
+                    style={{ all: "unset", cursor: "pointer", color: "var(--text-muted)", fontSize: 11.5 }}
+                  >
+                    Cancel
+                  </button>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 90, overflowY: "auto" }}>
+
+                {/* Item Name */}
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 4 }}>
+                    Item Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder={
+                      selectedCategory === "Chips"
+                        ? "e.g. Lays, Kurkure, Doritos..."
+                        : selectedCategory === "Cigarettes"
+                        ? "e.g. Gold Flake, Classic Milds..."
+                        : "e.g. Coke, Sprite, Red Bull..."
+                    }
+                    value={customItemName}
+                    onChange={(e) => setCustomItemName(e.target.value)}
+                    style={{
+                      width: "100%",
+                      height: 36,
+                      padding: "0 10px",
+                      background: "var(--bg-surface-raised)",
+                      border: "1px solid var(--border-default)",
+                      borderRadius: "var(--r-xs)",
+                      color: "var(--text-primary)",
+                      fontSize: 13,
+                    }}
+                  />
+                </div>
+
+                {/* Quantity & Unit Price */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 10 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 4 }}>
+                      Quantity
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={customQuantity}
+                      onChange={(e) => setCustomQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                      style={{
+                        width: "100%",
+                        height: 36,
+                        padding: "0 10px",
+                        background: "var(--bg-surface-raised)",
+                        border: "1px solid var(--border-default)",
+                        borderRadius: "var(--r-xs)",
+                        color: "var(--text-primary)",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 4 }}>
+                      Price per Item (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      required
+                      placeholder="₹ 0"
+                      value={customUnitPrice}
+                      onChange={(e) => setCustomUnitPrice(e.target.value)}
+                      style={{
+                        width: "100%",
+                        height: 36,
+                        padding: "0 10px",
+                        background: "var(--bg-surface-raised)",
+                        border: "1px solid var(--border-default)",
+                        borderRadius: "var(--r-xs)",
+                        color: "var(--text-primary)",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Line Total */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "8px 10px",
+                    background: "var(--bg-surface-raised)",
+                    borderRadius: "var(--r-xs)",
+                    border: "1px solid var(--border-subtle)",
+                    fontSize: 12,
+                  }}
+                >
+                  <span style={{ color: "var(--text-muted)" }}>Calculated Line Total:</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "var(--accent-primary)", fontFamily: "var(--font-mono)" }}>
+                    ₹{customLineTotal}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory(null)}
+                    className="btn"
+                    style={{ flex: 1, height: 34, fontSize: 12 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isAddingItem || !customItemName.trim() || !customUnitPrice}
+                    className="btn btn-primary"
+                    style={{ flex: 2, height: 34, fontSize: 12.5, fontWeight: 700, gap: 6 }}
+                  >
+                    <Plus size={14} />
+                    <span>{isAddingItem ? "Adding..." : `Add to Bill (₹${customLineTotal})`}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Attached Items Ledger */}
+            <div
+              style={{
+                background: "var(--bg-surface-inset)",
+                padding: 12,
+                borderRadius: "var(--r-xs)",
+                border: "1px solid var(--border-subtle)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, textTransform: "uppercase", fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.04em" }}>
+                  Items Attached to Bill ({existingItems.length})
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent-primary)" }}>
+                  Total: ₹{itemsTotal}
+                </span>
+              </div>
+
+              {existingItems.length === 0 ? (
+                <div style={{ padding: "12px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 11.5 }}>
+                  No add-on items added yet. Click a category above to add.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 150, overflowY: "auto" }}>
                   {existingItems.map((it) => (
-                    <div key={it.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                      <span>{it.quantity}x {it.product_name}</span>
-                      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>₹{it.total_price}</span>
+                    <div
+                      key={it.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "6px 8px",
+                        background: "var(--bg-surface-raised)",
+                        borderRadius: "var(--r-xs)",
+                        border: "1px solid var(--border-subtle)",
+                        fontSize: 12,
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{it.product_name}</div>
+                        <div style={{ fontSize: 10.5, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                          {it.quantity} × ₹{it.unit_price}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text-primary)" }}>
+                          ₹{it.total_price}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={isDeletingItemId === it.id}
+                          onClick={() => handleDeleteItem(it.id)}
+                          title="Remove item"
+                          style={{
+                            all: "unset",
+                            cursor: "pointer",
+                            color: "var(--danger)",
+                            opacity: isDeletingItemId === it.id ? 0.4 : 0.8,
+                            padding: 3,
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleConfirmAddItems}
-              disabled={isAddingItems || Object.values(pendingQuantities).every((q) => q === 0)}
-              className="btn btn-primary"
-              style={{ width: "100%", height: 38, fontSize: 13, fontWeight: 700, gap: 6 }}
-            >
-              <ShoppingBag size={14} />
-              <span>{isAddingItems ? "Adding Items..." : "Confirm & Add Items to Bill"}</span>
-            </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -597,7 +868,7 @@ export function ManageSessionModal({
           <div>
             <div style={{ marginBottom: 14 }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
-                Extend Active Session Duration
+                Continue Playing (Extend Duration)
               </h3>
               <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
                 Customer wants to continue playing? Select an extension duration. The tariff is automatically snapshotted and added to the bill.
@@ -672,7 +943,7 @@ export function ManageSessionModal({
                 border: "1px solid var(--border-subtle)",
               }}
             >
-              Extending preserves original match start time and links a duration extension record into the owner telemetry ledger.
+              Extending updates the countdown, removes the expiry animation, and links an extension record into the ledger.
             </div>
           </div>
         )}
@@ -719,7 +990,7 @@ export function ManageSessionModal({
 
               {itemsTotal > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "var(--text-secondary)" }}>Snacks &amp; Drinks ({existingItems.length} items):</span>
+                  <span style={{ color: "var(--text-secondary)" }}>Add-ons ({existingItems.length} items):</span>
                   <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>₹{itemsTotal}</span>
                 </div>
               )}

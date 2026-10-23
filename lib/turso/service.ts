@@ -425,8 +425,14 @@ export async function updateTablePricing(
   category: TableKind,
   rate_30m: number,
   rate_60m: number,
-  updatedBy: string = "owner"
+  updatedBy: string = "manager",
+  userRole: string = "staff"
 ) {
+  // Validate authorized roles (manager or owner)
+  if (userRole !== "owner" && userRole !== "staff") {
+    return false;
+  }
+
   try {
     const client = getTursoClient();
     await client.execute({
@@ -452,18 +458,93 @@ export async function updateTablePricing(
       args: [
         `audit_${Date.now()}`,
         "UPDATE_PRICING",
-        "owner",
-        JSON.stringify({ category, rate_30m, rate_60m, updatedBy }),
+        userRole,
+        JSON.stringify({ category, rate_30m, rate_60m, updatedBy, userRole }),
       ],
     });
 
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({ type: "floor_update", action: "update_pricing" });
+        bc.close();
+      } catch (e) {}
     }
     return true;
   } catch (err) {
     console.error("Failed to update table pricing:", err);
     return false;
+  }
+}
+
+/** 6b. Batch Save Table Pricing for All Categories (Owner & Manager Authorized) */
+export async function saveAllTablePricing(
+  rates: { category: TableKind; rate_30m: number; rate_60m: number }[],
+  updatedBy: string = "manager",
+  userRole: string = "staff"
+): Promise<{ success: boolean; error?: string }> {
+  // Validate authorized roles on server
+  if (userRole !== "owner" && userRole !== "staff") {
+    return { success: false, error: "Unauthorized: Only managers and owners are permitted to update table rates." };
+  }
+
+  // Validate non-negative numbers
+  for (const r of rates) {
+    if (isNaN(r.rate_30m) || r.rate_30m < 0 || isNaN(r.rate_60m) || r.rate_60m < 0) {
+      return {
+        success: false,
+        error: `Invalid tariff entered for ${r.category} table. All prices must be non-negative numeric amounts.`,
+      };
+    }
+  }
+
+  try {
+    const client = getTursoClient();
+
+    for (const r of rates) {
+      await client.execute({
+        sql: `INSERT INTO table_pricing (id, category, rate_30m, rate_60m, updated_by, updated_at)
+              VALUES (?, ?, ?, ?, ?, datetime('now'))
+              ON CONFLICT (category) DO UPDATE SET
+                rate_30m = excluded.rate_30m,
+                rate_60m = excluded.rate_60m,
+                updated_by = excluded.updated_by,
+                updated_at = datetime('now')`,
+        args: [`price_${r.category.toLowerCase()}`, r.category, r.rate_30m, r.rate_60m, updatedBy],
+      });
+
+      // Update club_tables fleet baseline hourly rate for that category
+      await client.execute({
+        sql: `UPDATE club_tables SET hourly_rate = ?, updated_at = datetime('now') WHERE kind = ?`,
+        args: [r.rate_60m, r.category],
+      });
+    }
+
+    // Record audit trail
+    await client.execute({
+      sql: `INSERT INTO audit_logs (id, action, role, details) VALUES (?, ?, ?, ?)`,
+      args: [
+        `audit_${Date.now()}`,
+        "UPDATE_ALL_PRICING",
+        userRole,
+        JSON.stringify({ rates, updatedBy, userRole, timestamp: new Date().toISOString() }),
+      ],
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({ type: "floor_update", action: "update_pricing" });
+        bc.close();
+      } catch (e) {}
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to save all table pricing:", err);
+    return { success: false, error: String(err) };
   }
 }
 
@@ -1335,6 +1416,157 @@ export async function collectFloorPayment(params: {
     return { success: true };
   } catch (err) {
     console.error("Failed to collect floor payment:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 21. Remove specific Add-on item from Session */
+export async function removeSessionItem(params: {
+  itemId: string;
+  sessionId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getTursoClient();
+
+    // Query item to get line total
+    const itemRes = await client.execute({
+      sql: "SELECT total_price FROM session_items WHERE id = ? AND session_id = ?",
+      args: [params.itemId, params.sessionId],
+    });
+
+    if (itemRes.rows.length === 0) {
+      return { success: false, error: "Item not found." };
+    }
+
+    const itemPrice = Number(itemRes.rows[0].total_price || 0);
+
+    // Delete item
+    await client.execute({
+      sql: "DELETE FROM session_items WHERE id = ? AND session_id = ?",
+      args: [params.itemId, params.sessionId],
+    });
+
+    // Deduct from session totals
+    await client.execute({
+      sql: `UPDATE sessions 
+            SET items_amount = MAX(0, COALESCE(items_amount, 0) - ?),
+                final_total = MAX(0, final_total - ?),
+                updated_at = datetime('now')
+            WHERE id = ?`,
+      args: [itemPrice, itemPrice, params.sessionId],
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({ type: "floor_update", action: "remove_item", sessionId: params.sessionId });
+        bc.close();
+      } catch (e) {}
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to remove session item:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 22. Void or Delete Session (Notifies Owner & Logs Audit) */
+export async function voidOrDeleteSession(params: {
+  sessionId: string;
+  tableId: string;
+  tableName: string;
+  playerName?: string;
+  managerName?: string;
+  reason?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getTursoClient();
+
+    // 1. Reset Table status to available
+    await client.execute({
+      sql: `UPDATE club_tables 
+            SET status = 'available',
+                current_player = NULL,
+                current_phone = NULL,
+                session_started_at = NULL,
+                scheduled_end_at = NULL,
+                duration_choice = NULL,
+                current_session_id = NULL,
+                notes = NULL,
+                updated_at = datetime('now')
+            WHERE id = ?`,
+      args: [params.tableId],
+    });
+
+    // 2. Mark session as voided in sessions table
+    await client.execute({
+      sql: `UPDATE sessions
+            SET status = 'voided',
+                ended_at = datetime('now'),
+                notes = COALESCE(notes, '') || ' [VOIDED by ' || ? || ': ' || ? || ']',
+                updated_at = datetime('now')
+            WHERE id = ?`,
+      args: [
+        params.managerName || "manager",
+        params.reason || "Session deleted by floor operator",
+        params.sessionId,
+      ],
+    });
+
+    // 3. Insert critical audit trail log for Owner oversight
+    const auditId = `audit_void_${Date.now()}`;
+    await client.execute({
+      sql: `INSERT INTO audit_logs (id, action, role, target_id, details) VALUES (?, ?, ?, ?, ?)`,
+      args: [
+        auditId,
+        "VOID_SESSION",
+        "staff",
+        params.sessionId,
+        JSON.stringify({
+          tableId: params.tableId,
+          tableName: params.tableName,
+          player: params.playerName || "Walk-in",
+          deletedBy: params.managerName || "manager",
+          reason: params.reason || "Manual session deletion",
+          timestamp: new Date().toISOString(),
+        }),
+      ],
+    });
+
+    // 4. Trigger alert notification for Owner
+    if (typeof window !== "undefined") {
+      const alertNotif = {
+        id: `void-alert-${params.sessionId}-${Date.now()}`,
+        title: `⚠️ Match Deleted: ${params.tableName}`,
+        body: `Match for "${params.playerName || "Walk-in"}" was deleted by ${params.managerName || "manager"}.`,
+        table_id: params.tableId,
+        table_name: params.tableName,
+        type: "session_end" as const,
+        timestamp: Date.now(),
+        read: false,
+      };
+
+      window.dispatchEvent(
+        new CustomEvent("levelup_trigger_notif", { detail: alertNotif })
+      );
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({
+          type: "TRIGGER_FLOOR_ALERT",
+          notif: alertNotif,
+        });
+        bc.postMessage({ type: "floor_update", action: "void_session", tableId: params.tableId });
+        bc.close();
+      } catch (e) {}
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to void session:", err);
     return { success: false, error: String(err) };
   }
 }

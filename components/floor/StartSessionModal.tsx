@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { ClubTable, TablePricing, TableKind } from "@/lib/types";
-import { startFloorSession } from "@/lib/turso/service";
+import { startFloorSession, getTablePricing } from "@/lib/turso/service";
 import { useAuth } from "@/lib/auth/AuthContext";
 import {
   Play,
@@ -47,12 +47,24 @@ export function StartSessionModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  const [livePricing, setLivePricing] = useState<TablePricing[]>(pricingList);
+
+  useEffect(() => {
+    if (pricingList && pricingList.length > 0) {
+      setLivePricing(pricingList);
+    } else {
+      getTablePricing().then((data) => {
+        if (data && data.length > 0) setLivePricing(data);
+      });
+    }
+  }, [pricingList]);
+
   if (!table) return null;
 
   // Active pricing for this table kind
-  const pricing = pricingList.find((p) => p.category === table.kind) || {
-    rate_30m: table.kind === "Royal" ? 300 : table.kind === "Snooker" ? 200 : 150,
-    rate_60m: table.kind === "Royal" ? 500 : table.kind === "Snooker" ? 350 : 250,
+  const pricing = livePricing.find((p) => p.category === table.kind) || {
+    rate_30m: table.kind === "Royal" ? 200 : table.kind === "Snooker" ? 100 : 60,
+    rate_60m: table.kind === "Royal" ? 300 : table.kind === "Snooker" ? 150 : 100,
   };
 
   const currentPrice = durationChoice === "30m" ? pricing.rate_30m : pricing.rate_60m;

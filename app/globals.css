@@ -1400,7 +1400,30 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .table-time-up {
-  border-color: rgba(239, 68, 68, 0.6) !important;
+  border-color: rgba(245, 158, 11, 0.95) !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.8), 0 0 20px rgba(245, 158, 11, 0.28) !important;
+  animation: expiryPulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes expiryPulseRing {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.85), 0 0 12px rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.95);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.45), 0 0 24px rgba(245, 158, 11, 0.38);
+    border-color: rgba(245, 158, 11, 0.65);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-time-up {
+    animation: none !important;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.85) !important;
+    border-color: rgba(245, 158, 11, 0.9) !important;
+  }
 }
 
 .table-ending-soon {
