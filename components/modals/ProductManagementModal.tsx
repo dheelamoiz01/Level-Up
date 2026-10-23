@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Package, Plus, Trash2, Check, X } from "lucide-react";
 import type { Product } from "@/lib/types";
-import { createClient } from "@/lib/supabase/client";
+import { insertProduct, updateProduct, deleteProduct } from "@/lib/turso/service";
 
 interface Props {
   open: boolean;
@@ -54,22 +54,7 @@ export function ProductManagementModal({
 
     onAddProduct(newProd);
 
-    try {
-      const supabase = createClient();
-      await supabase.from("products").insert([
-        {
-          id: newProd.id,
-          name: newProd.name,
-          category: newProd.category,
-          price: newProd.price,
-          cost_price: newProd.cost_price,
-          active: true,
-          stock_count: newProd.stock_count,
-        },
-      ]);
-    } catch (err) {
-      console.debug("Supabase product insert info:", err);
-    }
+    await insertProduct(newProd);
 
     setNewName("");
     setNewPrice(100);
@@ -95,45 +80,20 @@ export function ProductManagementModal({
     onUpdateProduct(updated);
     setEditingId(null);
 
-    try {
-      const supabase = createClient();
-      await supabase
-        .from("products")
-        .update({
-          name: updated.name,
-          price: updated.price,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", p.id);
-    } catch (err) {
-      console.debug("Supabase product update info:", err);
-    }
+    await updateProduct(p.id, { name: updated.name, price: updated.price });
   };
 
   const toggleStock = async (p: Product) => {
     const updated = { ...p, active: !p.active };
     onUpdateProduct(updated);
 
-    try {
-      const supabase = createClient();
-      await supabase
-        .from("products")
-        .update({ active: updated.active, updated_at: new Date().toISOString() })
-        .eq("id", p.id);
-    } catch (err) {
-      console.debug("Supabase product toggle info:", err);
-    }
+    await updateProduct(p.id, { active: updated.active });
   };
 
   const handleDelete = async (id: string) => {
     onDeleteProduct(id);
 
-    try {
-      const supabase = createClient();
-      await supabase.from("products").delete().eq("id", id);
-    } catch (err) {
-      console.debug("Supabase product delete info:", err);
-    }
+    await deleteProduct(id);
   };
 
   return (

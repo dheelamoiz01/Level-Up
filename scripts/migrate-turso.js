@@ -27,6 +27,17 @@ async function migrate() {
   `);
 
   await client.execute(`
+    CREATE TABLE IF NOT EXISTS table_pricing (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL UNIQUE CHECK (category IN ('Royal', 'Snooker', 'Pool')),
+      rate_30m REAL NOT NULL,
+      rate_60m REAL NOT NULL,
+      updated_by TEXT DEFAULT 'owner',
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -45,9 +56,11 @@ async function migrate() {
       id TEXT PRIMARY KEY,
       table_id TEXT,
       table_name TEXT NOT NULL,
+      table_kind TEXT DEFAULT 'Snooker',
       customer_name TEXT NOT NULL DEFAULT 'Walk-in Player',
       customer_phone TEXT,
       hourly_rate REAL NOT NULL,
+      rate_snapshot REAL DEFAULT 350.0,
       started_at TEXT NOT NULL DEFAULT (datetime('now')),
       ended_at TEXT,
       duration_minutes INTEGER DEFAULT 0,
@@ -58,6 +71,7 @@ async function migrate() {
       final_total REAL NOT NULL DEFAULT 0.00,
       status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed', 'voided')),
       paid INTEGER NOT NULL DEFAULT 0,
+      payment_status TEXT DEFAULT 'Unpaid' CHECK (payment_status IN ('Unpaid', 'Partially Paid', 'Paid')),
       payment_method TEXT CHECK (payment_method IN ('cash', 'upi', 'card', 'split', 'udhar')),
       created_by TEXT DEFAULT 'staff',
       created_at TEXT DEFAULT (datetime('now')),
@@ -79,6 +93,23 @@ async function migrate() {
   `);
 
   await client.execute(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      amount REAL NOT NULL,
+      expense_date TEXT NOT NULL,
+      payment_method TEXT NOT NULL CHECK (payment_method IN ('cash', 'upi', 'bank_transfer', 'card')),
+      paid_to TEXT NOT NULL,
+      notes TEXT,
+      receipt_url TEXT,
+      created_by TEXT NOT NULL DEFAULT 'owner',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  await client.execute(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id TEXT PRIMARY KEY,
       action TEXT NOT NULL,
@@ -89,7 +120,7 @@ async function migrate() {
     );
   `);
 
-  console.log('Tables created. Seeding initial club tables...');
+  console.log('Tables created. Seeding initial club tables & pricing...');
 
   // Seed 5 tables
   const tables = [
@@ -108,6 +139,23 @@ async function migrate() {
       args: [t.id, t.number, t.name, t.kind, t.rate, t.min]
     });
   }
+
+  // Seed default pricing
+  await client.execute(`
+    INSERT INTO table_pricing (id, category, rate_30m, rate_60m, updated_by)
+    VALUES ('price_royal', 'Royal', 300, 500, 'owner')
+    ON CONFLICT (category) DO NOTHING;
+  `);
+  await client.execute(`
+    INSERT INTO table_pricing (id, category, rate_30m, rate_60m, updated_by)
+    VALUES ('price_snooker', 'Snooker', 200, 350, 'owner')
+    ON CONFLICT (category) DO NOTHING;
+  `);
+  await client.execute(`
+    INSERT INTO table_pricing (id, category, rate_30m, rate_60m, updated_by)
+    VALUES ('price_pool', 'Pool', 150, 250, 'owner')
+    ON CONFLICT (category) DO NOTHING;
+  `);
 
   // Seed products
   const products = [

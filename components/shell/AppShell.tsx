@@ -16,6 +16,9 @@ import {
   Sliders,
   LogOut,
   RefreshCw,
+  Receipt,
+  DollarSign,
+  UserCheck,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
@@ -27,7 +30,10 @@ const primaryNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tables", label: "Live Tables", icon: CircleDot },
   { href: "/customers", label: "Customers", icon: Users },
+  { href: "/pricing", label: "Table Pricing", icon: DollarSign },
+  { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/products", label: "Products", icon: Package },
+  { href: "/staff", label: "Staff", icon: UserCheck },
   { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
@@ -324,8 +330,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
                       <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 6, flexShrink: 0 }} />
                       <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Supabase Realtime</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Postgres stream connected</div>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Turso Cloud Sync</div>
+                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>libSQL cloud database active</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
@@ -373,15 +379,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                   setNotifOpen(false);
                 }}
               >
-                <div className="avatar-circle">{userInitials}</div>
-                <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1, textAlign: "left" }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
-                    {user?.title || "Terminal"}
-                  </span>
-                  <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "capitalize" }}>
-                    {user?.username || "Active"}
-                  </span>
-                </div>
+                <div className="avatar-circle">{user?.role === "owner" ? "OW" : "MG"}</div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
+                  {user?.role === "owner" ? "Owner" : "Manager"}
+                </span>
                 <ChevronDown size={12} style={{ color: "var(--text-muted)", marginLeft: 2 }} />
               </div>
 

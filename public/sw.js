@@ -38,7 +38,7 @@ self.addEventListener('fetch', (event) => {
 
   // Network-only for navigation (HTML) and API calls to guarantee fresh session data
   const isNavigation = event.request.mode === 'navigate';
-  const isApi = url.pathname.startsWith('/api/') || url.hostname.includes('supabase.co');
+  const isApi = url.pathname.startsWith('/api/') || url.hostname.includes('turso.io');
 
   if (isNavigation || isApi) {
     event.respondWith(

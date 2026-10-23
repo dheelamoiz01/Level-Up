@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionUser: AuthUser = {
         username: "manager",
         role: "staff",
-        title: "Floor Manager",
+        title: "Manager",
       };
       setUser(sessionUser);
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionUser));
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionUser: AuthUser = {
         username: "owner",
         role: "owner",
-        title: "Club Owner",
+        title: "Owner",
       };
       setUser(sessionUser);
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionUser));

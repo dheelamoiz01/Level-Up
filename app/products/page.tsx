@@ -5,8 +5,8 @@ import { initialProducts } from "@/lib/mock/products";
 import type { Product } from "@/lib/types";
 import { Package, Coffee, Utensils, Sliders } from "lucide-react";
 import { ProductManagementModal } from "@/components/modals/ProductManagementModal";
-import { createClient } from "@/lib/supabase/client";
-import { getLiveProducts } from "@/lib/supabase/service";
+
+import { getLiveProducts, insertProduct, updateProduct, deleteProduct } from "@/lib/turso/service";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -21,21 +21,15 @@ export default function ProductsPage() {
     };
     loadProducts();
 
-    const supabase = createClient();
-    const channel = supabase
-      .channel("products_page_sync")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "products" },
-        () => {
-          loadProducts();
-        }
-      )
-      .subscribe();
+    const handleFloorUpdate = () => loadProducts();
+    window.addEventListener("levelup_floor_update", handleFloorUpdate);
+
+    const poll = setInterval(() => loadProducts(), 10000);
 
     return () => {
       mounted = false;
-      supabase.removeChannel(channel);
+      window.removeEventListener("levelup_floor_update", handleFloorUpdate);
+      clearInterval(poll);
     };
   }, []);
 
@@ -57,53 +51,17 @@ export default function ProductsPage() {
 
   const handleAddProduct = async (newProd: Product) => {
     setProducts((prev) => [newProd, ...prev]);
-    try {
-      const supabase = createClient();
-      await supabase.from("products").insert([
-        {
-          id: newProd.id,
-          name: newProd.name,
-          category: newProd.category,
-          price: newProd.price,
-          cost_price: newProd.cost_price || Math.round(newProd.price * 0.6),
-          active: newProd.active,
-          stock_count: newProd.stock_count || 50,
-        },
-      ]);
-    } catch (e) {
-      console.debug("Supabase insert product info:", e);
-    }
+    await insertProduct(newProd);
   };
 
   const handleUpdateProduct = async (updated: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-    try {
-      const supabase = createClient();
-      await supabase
-        .from("products")
-        .update({
-          name: updated.name,
-          category: updated.category,
-          price: updated.price,
-          cost_price: updated.cost_price,
-          active: updated.active,
-          stock_count: updated.stock_count,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", updated.id);
-    } catch (e) {
-      console.debug("Supabase update product info:", e);
-    }
+    await updateProduct(updated.id, updated);
   };
 
   const handleDeleteProduct = async (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
-    try {
-      const supabase = createClient();
-      await supabase.from("products").delete().eq("id", id);
-    } catch (e) {
-      console.debug("Supabase delete product info:", e);
-    }
+    await deleteProduct(id);
   };
 
   return (

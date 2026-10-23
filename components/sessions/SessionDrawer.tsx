@@ -5,6 +5,7 @@ import type { ClubTable, Product } from "@/lib/types";
 import { mockProducts } from "@/lib/mock/products";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useAuth } from "@/lib/auth/AuthContext";
 import {
   Play,
   CheckCircle2,
@@ -25,8 +26,8 @@ import {
   Receipt,
   Layers,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { getLiveProducts } from "@/lib/supabase/service";
+
+import { getLiveProducts, startArenaSession, settleArenaSession } from "@/lib/turso/service";
 
 export interface BillLine {
   product: Product;
@@ -48,6 +49,7 @@ interface Props {
 const CATEGORIES = ["All", "Drinks", "Snacks", "Accessories"] as const;
 
 export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
+  const { user } = useAuth();
   // Multi-player session creation fields
   const [players, setPlayers] = useState<PlayerEntry[]>([
     { id: "p1", name: "", phone: "" },
@@ -251,37 +253,18 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
       );
     }
 
-    // Sync to Supabase
-    try {
-      const supabase = createClient();
-      await supabase
-        .from("club_tables")
-        .update({
-          status: "playing",
-          current_player: finalPlayer,
-          current_phone: primaryPhone,
-          hourly_rate: editableRate,
-          session_started_at: now.toISOString(),
-          updated_at: now.toISOString(),
-        })
-        .eq("id", table.id);
-
-      await supabase.from("sessions").insert([
-        {
-          table_id: table.id,
-          table_name: table.name,
-          customer_name: finalPlayer,
-          customer_phone: primaryPhone,
-          hourly_rate: editableRate,
-          started_at: now.toISOString(),
-          status: "active",
-          items_amount: itemsTotal,
-          discount_amount: discount,
-        },
-      ]);
-    } catch (err) {
-      console.debug("Supabase session start sync info:", err);
-    }
+    // Sync to Turso database
+    await startArenaSession({
+      tableId: table.id,
+      tableName: table.name,
+      tableKind: table.kind,
+      player: finalPlayer,
+      phone: primaryPhone || undefined,
+      hourlyRate: editableRate,
+      startedAtIso: now.toISOString(),
+      notes: table.notes || undefined,
+      createdBy: user?.username || "manager",
+    });
 
     // Mutate table in-memory
     table.status = "playing";
@@ -320,47 +303,22 @@ export function SessionDrawer({ table, onClose, onSessionUpdated }: Props) {
       );
     }
 
-    // Sync to Supabase
-    try {
-      const supabase = createClient();
-      const startMs = table.session_started_at
-        ? new Date(table.session_started_at).getTime()
-        : Date.now();
-      const durationMins = Math.max(1, Math.round((Date.now() - startMs) / 60000));
+    // Sync to Turso database
+    const startMs = table.session_started_at
+      ? new Date(table.session_started_at).getTime()
+      : Date.now();
+    const durationMins = Math.max(1, Math.round((Date.now() - startMs) / 60000));
 
-      // 1. Complete session record
-      await supabase
-        .from("sessions")
-        .update({
-          ended_at: nowIso,
-          duration_minutes: durationMins,
-          table_amount: playCharge,
-          items_amount: itemsTotal,
-          discount_amount: discount,
-          discount_reason: discountReason || null,
-          final_total: finalTotal,
-          status: "completed",
-          paid: paymentMethod !== "udhar",
-          payment_method: paymentMethod,
-          updated_at: nowIso,
-        })
-        .eq("table_id", table.id)
-        .eq("status", "active");
-
-      // 2. Free the table
-      await supabase
-        .from("club_tables")
-        .update({
-          status: "available",
-          current_player: null,
-          current_phone: null,
-          session_started_at: null,
-          updated_at: nowIso,
-        })
-        .eq("id", table.id);
-    } catch (err) {
-      console.debug("Supabase settle sync info:", err);
-    }
+    await settleArenaSession({
+      tableId: table.id,
+      tableAmount: playCharge,
+      itemsAmount: itemsTotal,
+      discountAmount: discount,
+      discountReason: discountReason || undefined,
+      finalTotal,
+      paymentMethod,
+      durationMins,
+    });
 
     // Reset table in-memory
     table.status = "available";

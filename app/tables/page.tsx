@@ -7,8 +7,7 @@ import { RateManagementModal } from "@/components/modals/RateManagementModal";
 import { initialTables } from "@/lib/mock/tables";
 import type { ClubTable, TableStatus } from "@/lib/types";
 import { Sliders } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { getLiveTables, formatDurationFromStart, calculateAccruedBill } from "@/lib/supabase/service";
+import { getLiveTables, formatDurationFromStart, calculateAccruedBill } from "@/lib/turso/service";
 
 const filters: ("all" | TableStatus)[] = [
   "all",
@@ -33,7 +32,7 @@ export default function LiveTables() {
   const [ratesModalOpen, setRatesModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Load real tables from Supabase on mount
+  // Load real tables from Turso on mount
   useEffect(() => {
     let mounted = true;
 
@@ -43,19 +42,6 @@ export default function LiveTables() {
     };
 
     loadData();
-
-    // Subscribe to realtime updates from Supabase
-    const supabase = createClient();
-    const channel = supabase
-      .channel("tables_page_sync")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "club_tables" },
-        () => {
-          loadData();
-        }
-      )
-      .subscribe();
 
     const handleLocalUpdate = () => loadData();
     window.addEventListener("levelup_floor_update", handleLocalUpdate);
@@ -76,11 +62,16 @@ export default function LiveTables() {
       );
     }, 1000);
 
+    // Periodic poll every 10s for multi-device sync
+    const pollInterval = setInterval(() => {
+      loadData();
+    }, 10000);
+
     return () => {
       mounted = false;
-      supabase.removeChannel(channel);
       window.removeEventListener("levelup_floor_update", handleLocalUpdate);
       clearInterval(interval);
+      clearInterval(pollInterval);
     };
   }, [refreshKey]);
 
@@ -88,115 +79,87 @@ export default function LiveTables() {
 
   // Quick stats
   const activeCount = tables.filter((t) => t.status === "playing").length;
-
-  const handleUpdateTableRate = (tableId: string, newRate: number) => {
-    setTables((prev) =>
-      prev.map((t) => (t.id === tableId ? { ...t, hourly_rate: newRate } : t))
-    );
-  };
-
-  const handleBulkUpdateRate = (kind: "Royal" | "Snooker" | "Pool", newRate: number) => {
-    setTables((prev) =>
-      prev.map((t) => (t.kind === kind ? { ...t, hourly_rate: newRate } : t))
-    );
-  };
+  const availableCount = tables.filter((t) => t.status === "available").length;
 
   return (
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow" style={{ marginBottom: 4 }}>
-            <span>Arena Floor</span>
-            <span style={{ opacity: 0.4 }}>•</span>
-            <span>{activeCount} Active Sessions</span>
+          <div className="eyebrow eyebrow-accent" style={{ marginBottom: 4 }}>
+            <span>Fleet Status</span>
+            <span style={{ opacity: 0.5 }}>•</span>
+            <span style={{ color: "var(--accent-primary)" }}>{activeCount} Tables In Play</span>
           </div>
-          <h1>Live Arena Tables</h1>
+          <h1>Live Arena Floor</h1>
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Manager Rate Config Button */}
+        <div style={{ display: "flex", gap: "var(--s-2)" }}>
           <button
             onClick={() => setRatesModalOpen(true)}
             className="btn"
-            style={{ height: 32, fontSize: 11.5, gap: 5 }}
+            style={{ gap: 6 }}
           >
-            <Sliders size={12} />
+            <Sliders size={14} />
             <span>Table Rates</span>
           </button>
-
-          {/* Clean Segmented Filter Group */}
-          <div
-            style={{
-              display: "inline-flex",
-              padding: "2px",
-              borderRadius: "var(--r-sm)",
-              background: "var(--bg-surface-inset)",
-              border: "1px solid var(--border-subtle)",
-              gap: 2,
-              flexWrap: "wrap",
-            }}
-          >
-            {filters.map((x) => {
-              const count =
-                x === "all" ? tables.length : tables.filter((t) => t.status === x).length;
-              const active = f === x;
-              return (
-                <button
-                  key={x}
-                  style={{
-                    all: "unset",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    height: 28,
-                    padding: "0 10px",
-                    borderRadius: "var(--r-xs)",
-                    fontSize: 11.5,
-                    fontWeight: active ? 600 : 500,
-                    color: active ? "var(--text-primary)" : "var(--text-muted)",
-                    background: active ? "var(--bg-surface-raised)" : "transparent",
-                    border: active ? "1px solid var(--border-default)" : "1px solid transparent",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setF(x)}
-                >
-                  <span>{labels[x]}</span>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontFamily: "var(--font-mono)",
-                      color: active ? "var(--accent-primary)" : "var(--text-dim)",
-                    }}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
         </div>
       </div>
 
-      {/* Grid of 5 table cards */}
-      <div className="tables-grid" key={refreshKey}>
-        {list.map((t) => (
-          <PoolTableCard key={t.id} table={t} onSelect={setSel} />
+      {/* Filter Tabs */}
+      <div className="filter-bar">
+        {filters.map((k) => (
+          <button
+            key={k}
+            className={`filter-tab ${f === k ? "active" : ""}`}
+            onClick={() => setF(k)}
+          >
+            {labels[k]}
+          </button>
         ))}
       </div>
 
+      {/* Table Cards Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+          gap: "var(--s-4)",
+        }}
+      >
+        {list.map((table) => (
+          <PoolTableCard
+            key={table.id}
+            table={table}
+            onSelect={(t) => setSel(t)}
+          />
+        ))}
+      </div>
+
+      {/* Slide-out Session Drawer */}
       <SessionDrawer
-        key={sel?.id ?? "none"}
         table={sel}
         onClose={() => setSel(null)}
-        onSessionUpdated={() => setRefreshKey((k) => k + 1)}
+        onSessionUpdated={() => {
+          setRefreshKey((k) => k + 1);
+          setSel(null);
+        }}
       />
 
+      {/* Rate Management Modal */}
       <RateManagementModal
         open={ratesModalOpen}
-        onClose={() => setRatesModalOpen(false)}
         tables={tables}
-        onUpdateTableRate={handleUpdateTableRate}
-        onBulkUpdateRate={handleBulkUpdateRate}
+        onClose={() => setRatesModalOpen(false)}
+        onUpdateTableRate={(id: string, rate: number) => {
+          setTables((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, hourly_rate: rate } : t))
+          );
+        }}
+        onBulkUpdateRate={(kind, rate) => {
+          setTables((prev) =>
+            prev.map((t) => (t.kind === kind ? { ...t, hourly_rate: rate } : t))
+          );
+        }}
       />
     </>
   );

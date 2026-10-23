@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleDot, X, ArrowUpRight } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { playChime } from "@/lib/notifications/audio";
 import { showLocalNativeNotification } from "@/lib/notifications/push-service";
 import type { FloorNotification } from "@/lib/types";
@@ -46,57 +45,7 @@ export function NotificationListener() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const supabase = createClient();
-
-    // 1. Listen for table updates
-    const tablesChannel = supabase
-      .channel("levelup_tables_stream")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "club_tables" },
-        (payload) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const table = payload.new as any;
-          if (table.status === "playing") {
-            triggerFloorAlert({
-              id: `tbl-${table.id}-${table.session_started_at || Date.now()}`,
-              title: `${table.name} Active`,
-              body: `Player: ${table.current_player || "Walk-in"} · Rate: ₹${table.hourly_rate}/hr`,
-              table_id: table.id,
-              table_name: table.name,
-              type: "session_start",
-              timestamp: Date.now(),
-              read: false,
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    // 2. Listen for session inserts
-    const sessionsChannel = supabase
-      .channel("levelup_sessions_stream")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "sessions" },
-        (payload) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const sess = payload.new as any;
-          triggerFloorAlert({
-            id: `sess-${sess.id}`,
-            title: `Session: ${sess.table_name}`,
-            body: `${sess.customer_name} · ₹${sess.hourly_rate}/hr`,
-            table_id: sess.table_id,
-            table_name: sess.table_name,
-            type: "session_start",
-            timestamp: Date.now(),
-            read: false,
-          });
-        }
-      )
-      .subscribe();
-
-    // 3. BroadcastChannel for instant same-browser cross-tab sync
+    // 1. BroadcastChannel for instant same-browser cross-tab sync
     let bc: BroadcastChannel | null = null;
     try {
       if ("BroadcastChannel" in window) {
@@ -109,7 +58,7 @@ export function NotificationListener() {
       }
     } catch {}
 
-    // Global event listener for local state actions
+    // 2. Global event listener for local state actions
     const handleLocalTrigger = (e: Event) => {
       const customEvent = e as CustomEvent<FloorNotification>;
       if (customEvent.detail) {
@@ -119,8 +68,6 @@ export function NotificationListener() {
     window.addEventListener("levelup_trigger_notif", handleLocalTrigger);
 
     return () => {
-      supabase.removeChannel(tablesChannel);
-      supabase.removeChannel(sessionsChannel);
       if (bc) bc.close();
       window.removeEventListener("levelup_trigger_notif", handleLocalTrigger);
     };
@@ -129,32 +76,33 @@ export function NotificationListener() {
   if (!activeToast) return null;
 
   return (
-    <div
+    <aside
+      aria-label="Floor Alert Notification"
+      role="status"
       style={{
         position: "fixed",
-        top: 18,
-        right: 18,
-        zIndex: 99999,
+        top: 16,
+        right: 16,
+        zIndex: 9999,
         display: "flex",
         alignItems: "center",
         gap: 12,
-        padding: "10px 14px",
-        borderRadius: "var(--r-md)",
+        padding: "12px 16px",
         background: "var(--bg-surface-raised)",
         border: "1px solid var(--border-default)",
+        borderRadius: "var(--r-md)",
         boxShadow: "var(--shadow-lg)",
-        maxWidth: 360,
-        width: "calc(100vw - 32px)",
-        animation: "slideInTop 0.2s ease-out",
+        maxWidth: 380,
+        animation: "slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
       <div
         style={{
-          width: 30,
-          height: 30,
+          width: 32,
+          height: 32,
           borderRadius: "var(--r-xs)",
-          background: "rgba(0, 199, 138, 0.08)",
-          border: "1px solid rgba(0, 199, 138, 0.2)",
+          background: "rgba(0, 199, 138, 0.1)",
+          border: "1px solid rgba(0, 199, 138, 0.25)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -162,53 +110,61 @@ export function NotificationListener() {
           flexShrink: 0,
         }}
       >
-        <CircleDot size={15} strokeWidth={2.2} />
+        <CircleDot size={16} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
           {activeToast.title}
         </div>
-        <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2, lineHeight: 1.25 }}>
+        <div
+          style={{
+            fontSize: 11.5,
+            color: "var(--text-secondary)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
           {activeToast.body}
         </div>
       </div>
 
-      <button
-        onClick={() => {
-          setActiveToast(null);
-          router.push(activeToast.table_id ? `/tables` : "/tables");
-        }}
-        className="btn"
-        style={{
-          height: 28,
-          padding: "0 8px",
-          fontSize: 11,
-          fontWeight: 600,
-          flexShrink: 0,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 3,
-        }}
-      >
-        <span>View</span>
-        <ArrowUpRight size={12} />
-      </button>
-
-      <button
-        onClick={() => setActiveToast(null)}
-        style={{
-          all: "unset",
-          color: "var(--text-muted)",
-          cursor: "pointer",
-          padding: 2,
-          display: "flex",
-          alignItems: "center",
-        }}
-        aria-label="Dismiss toast"
-      >
-        <X size={15} />
-      </button>
-    </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        {activeToast.table_id && (
+          <button
+            onClick={() => {
+              router.push(`/tables?focus=${activeToast.table_id}`);
+              setActiveToast(null);
+            }}
+            style={{
+              all: "unset",
+              cursor: "pointer",
+              padding: "4px",
+              color: "var(--accent-primary)",
+              display: "flex",
+              alignItems: "center",
+            }}
+            title="View Table"
+          >
+            <ArrowUpRight size={14} />
+          </button>
+        )}
+        <button
+          onClick={() => setActiveToast(null)}
+          style={{
+            all: "unset",
+            cursor: "pointer",
+            padding: "4px",
+            color: "var(--text-muted)",
+            display: "flex",
+            alignItems: "center",
+          }}
+          title="Dismiss"
+        >
+          <X size={14} />
+        </button>
+      </div>
+    </aside>
   );
 }

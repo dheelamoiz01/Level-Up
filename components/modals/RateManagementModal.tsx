@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Sliders, Check, X, CircleDot } from "lucide-react";
 import type { ClubTable } from "@/lib/types";
-import { createClient } from "@/lib/supabase/client";
+import { updateTableRate, updateBulkTableRates } from "@/lib/turso/service";
 
 interface Props {
   open: boolean;
@@ -43,15 +43,7 @@ export function RateManagementModal({
     if (rate && rate > 0) {
       onUpdateTableRate(id, rate);
 
-      try {
-        const supabase = createClient();
-        await supabase
-          .from("club_tables")
-          .update({ hourly_rate: rate, updated_at: new Date().toISOString() })
-          .eq("id", id);
-      } catch (e) {
-        console.debug("Supabase rate update info:", e);
-      }
+      await updateTableRate(id, rate);
 
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2000);
@@ -72,15 +64,7 @@ export function RateManagementModal({
         return next;
       });
 
-      try {
-        const supabase = createClient();
-        await supabase
-          .from("club_tables")
-          .update({ hourly_rate: bulkRate, updated_at: new Date().toISOString() })
-          .eq("kind", bulkKind);
-      } catch (e) {
-        console.debug("Supabase bulk rate update info:", e);
-      }
+      await updateBulkTableRates(bulkKind, bulkRate);
 
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2000);
