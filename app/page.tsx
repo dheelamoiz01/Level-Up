@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   getLiveTables,
@@ -36,7 +37,14 @@ import {
 type TimeRange = "Today" | "7 Days" | "30 Days";
 
 export default function Dashboard() {
-  const [role, setRole] = useState<UserRole>("owner");
+  const { user } = useAuth();
+  const [role, setRole] = useState<UserRole>(user?.role || "owner");
+
+  useEffect(() => {
+    if (user?.role) {
+      setRole(user.role);
+    }
+  }, [user?.role]);
   const [range, setRange] = useState<TimeRange>("Today");
   const [tables, setTables] = useState<ClubTable[]>(initialTables);
   const [products, setProducts] = useState<Product[]>(initialProducts);

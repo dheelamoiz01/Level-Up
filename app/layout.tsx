@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { AppShell } from "@/components/shell/AppShell";
+import { AuthProvider } from "@/lib/auth/AuthContext";
 
 export const metadata: Metadata = {
   title: "LEVEL UP — Pool & Snooker Club Management",
@@ -37,7 +38,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body>
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
       </body>
     </html>
   );

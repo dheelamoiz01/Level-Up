@@ -16,13 +16,12 @@ import {
   Sliders,
   LogOut,
   RefreshCw,
-  CheckCircle2,
-  AlertCircle,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import { Button } from "@/components/ui/Button";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { NotificationListener } from "@/components/realtime/NotificationListener";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { TerminalAuth } from "@/components/auth/TerminalAuth";
 
 const primaryNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -33,6 +32,7 @@ const primaryNav = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { user, isAuthenticated, isLoading, logout, isOwner } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -44,6 +44,38 @@ export function AppShell({ children }: { children: ReactNode }) {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 500);
   };
+
+  // If restoring auth session from localStorage
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg-app)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: "var(--accent-primary)",
+            boxShadow: "0 0 12px var(--accent-primary)",
+            display: "inline-block",
+            animation: "pulse 1.5s infinite",
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Terminal Lock / Auth Protection
+  if (!isAuthenticated) {
+    return <TerminalAuth />;
+  }
 
   const navButtons = primaryNav.map(({ href, label, icon: Icon }) => {
     const active = path === href;
@@ -59,6 +91,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Link>
     );
   });
+
+  const userInitials = isOwner ? "CO" : "FM";
 
   return (
     <div className="shell">
@@ -339,13 +373,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                   setNotifOpen(false);
                 }}
               >
-                <div className="avatar-circle">LU</div>
+                <div className="avatar-circle">{userInitials}</div>
                 <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1, textAlign: "left" }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
-                    Admin
+                    {user?.title || "Terminal"}
                   </span>
-                  <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
-                    Owner
+                  <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "capitalize" }}>
+                    {user?.username || "Active"}
                   </span>
                 </div>
                 <ChevronDown size={12} style={{ color: "var(--text-muted)", marginLeft: 2 }} />
@@ -364,8 +398,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }}
                 >
                   <div style={{ paddingBottom: 6, borderBottom: "1px solid var(--border-subtle)", marginBottom: 6 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)" }}>Admin Master</div>
-                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>manager@levelup.club</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)" }}>{user?.title}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{user?.username}@levelup.club</div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     <Link href="/settings" className="dropdown-item" onClick={() => setProfileOpen(false)}>
@@ -380,7 +414,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <button
                       className="dropdown-item"
                       style={{ color: "var(--amber)", width: "100%", textAlign: "left" }}
-                      onClick={() => setProfileOpen(false)}
+                      onClick={() => {
+                        setProfileOpen(false);
+                        logout();
+                      }}
                     >
                       <LogOut size={13} />
                       <span>Lock Terminal</span>
