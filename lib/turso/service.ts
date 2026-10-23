@@ -1500,20 +1500,28 @@ export async function voidOrDeleteSession(params: {
       args: [params.tableId],
     });
 
-    // 2. Mark session as voided in sessions table
-    await client.execute({
-      sql: `UPDATE sessions
-            SET status = 'voided',
-                ended_at = datetime('now'),
-                notes = COALESCE(notes, '') || ' [VOIDED by ' || ? || ': ' || ? || ']',
-                updated_at = datetime('now')
-            WHERE id = ?`,
-      args: [
-        params.managerName || "manager",
-        params.reason || "Session deleted by floor operator",
-        params.sessionId,
-      ],
-    });
+    // 2. Mark session as voided in sessions table (using discount_reason for void memo)
+    try {
+      await client.execute({
+        sql: `UPDATE sessions
+              SET status = 'voided',
+                  ended_at = datetime('now'),
+                  discount_reason = 'VOIDED by ' || ? || ': ' || ?,
+                  updated_at = datetime('now')
+              WHERE id = ?`,
+        args: [
+          params.managerName || "manager",
+          params.reason || "Session deleted by floor operator",
+          params.sessionId,
+        ],
+      });
+    } catch (sessionErr) {
+      console.warn("Session void update fallback:", sessionErr);
+      await client.execute({
+        sql: `UPDATE sessions SET status = 'voided', ended_at = datetime('now') WHERE id = ?`,
+        args: [params.sessionId],
+      });
+    }
 
     // 3. Insert critical audit trail log for Owner oversight
     const auditId = `audit_void_${Date.now()}`;
