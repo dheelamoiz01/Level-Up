@@ -10,8 +10,14 @@ import type {
   TableKind,
   SessionItem,
 } from "@/lib/types";
-import { initialTables } from "@/lib/mock/tables";
-import { initialProducts } from "@/lib/mock/products";
+
+const DEFAULT_CLUB_TABLES: ClubTable[] = [
+  { id: "t-royal-1", number: 1, name: "Royal Table 1", kind: "Royal", status: "available", hourly_rate: 500, min_fee: 100 },
+  { id: "t-royal-2", number: 2, name: "Royal Table 2", kind: "Royal", status: "available", hourly_rate: 500, min_fee: 100 },
+  { id: "t-snooker-1", number: 3, name: "Snooker Table 1", kind: "Snooker", status: "available", hourly_rate: 350, min_fee: 70 },
+  { id: "t-snooker-2", number: 4, name: "Snooker Table 2", kind: "Snooker", status: "available", hourly_rate: 350, min_fee: 70 },
+  { id: "t-pool-1", number: 5, name: "Pool Table 1", kind: "Pool", status: "available", hourly_rate: 250, min_fee: 50 },
+];
 
 
 /** Formats remaining seconds into MM:SS or HH:MM */
@@ -70,7 +76,7 @@ export async function getLiveTables(): Promise<ClubTable[]> {
     const result = await client.execute("SELECT * FROM club_tables ORDER BY number ASC");
 
     if (!result.rows || result.rows.length === 0) {
-      return initialTables;
+      return DEFAULT_CLUB_TABLES;
     }
 
     // Query active sessions to link live match data
@@ -131,7 +137,7 @@ export async function getLiveTables(): Promise<ClubTable[]> {
     });
   } catch (err) {
     console.debug("Error fetching tables from Turso, falling back to clean fleet:", err);
-    return initialTables;
+    return DEFAULT_CLUB_TABLES;
   }
 }
 
@@ -142,7 +148,7 @@ export async function getLiveProducts(): Promise<Product[]> {
     const result = await client.execute("SELECT * FROM products ORDER BY name ASC");
 
     if (!result.rows || result.rows.length === 0) {
-      return initialProducts;
+      return [];
     }
 
     return result.rows.map((p: any) => ({
@@ -156,7 +162,7 @@ export async function getLiveProducts(): Promise<Product[]> {
     }));
   } catch (err) {
     console.debug("Error fetching products from Turso:", err);
-    return initialProducts;
+    return [];
   }
 }
 
