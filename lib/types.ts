@@ -17,6 +17,11 @@ export interface ClubTable {
   bill?: number;
   notes?: string;
   items_count?: number;
+  scheduled_end_at?: string;
+  duration_choice?: "30m" | "1h";
+  current_session_id?: string;
+  remaining_seconds?: number;
+  is_time_up?: boolean;
 }
 
 export interface TablePricing {
@@ -73,6 +78,14 @@ export interface SessionRow {
   created_by?: string;
   items?: SessionItem[];
   status?: "active" | "paused" | "completed" | "voided";
+  scheduled_end_at?: string;
+  duration_choice?: "30m" | "1h";
+  extension_count?: number;
+  extension_amount?: number;
+  cash_paid?: number;
+  upi_paid?: number;
+  udhar_amount?: number;
+  upi_reference?: string;
 }
 
 export type ExpenseCategory =

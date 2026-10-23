@@ -49,9 +49,19 @@ import type {
 import { SessionDrawer } from "@/components/sessions/SessionDrawer";
 import { ProductManagementModal } from "@/components/modals/ProductManagementModal";
 import { RateManagementModal } from "@/components/modals/RateManagementModal";
+import { ManagerFloorDashboard } from "@/components/floor/ManagerFloorDashboard";
 
 export default function OwnerDashboard() {
   const { user, isOwner } = useAuth();
+  const isManager = user?.role === "staff";
+  const [viewMode, setViewMode] = useState<"floor" | "overview">(isManager ? "floor" : "overview");
+
+  useEffect(() => {
+    if (user?.role === "staff") {
+      setViewMode("floor");
+    }
+  }, [user?.role]);
+
 
   // Core Data States
   const [kpis, setKpis] = useState<BusinessKPIs>({
@@ -219,6 +229,61 @@ export default function OwnerDashboard() {
   // Occupied table counts
   const activeTablesCount = tables.filter((t) => t.status === "playing").length;
 
+  
+  // If user is Manager (staff) or Owner in floor view, render Manager Live Table Operations System
+  if (user?.role === "staff" || viewMode === "floor") {
+    return (
+      <>
+        {isOwner && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+            <div
+              style={{
+                display: "inline-flex",
+                padding: "2px",
+                borderRadius: "var(--r-xs)",
+                background: "var(--bg-surface-inset)",
+                border: "1px solid var(--border-subtle)",
+                gap: 2,
+              }}
+            >
+              <button
+                onClick={() => setViewMode("overview")}
+                style={{
+                  all: "unset",
+                  padding: "4px 10px",
+                  borderRadius: "var(--r-xs)",
+                  fontSize: 11.5,
+                  fontWeight: 500,
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                Business Overview
+              </button>
+              <button
+                onClick={() => setViewMode("floor")}
+                style={{
+                  all: "unset",
+                  padding: "4px 10px",
+                  borderRadius: "var(--r-xs)",
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: "var(--accent-primary)",
+                  background: "var(--bg-surface-raised)",
+                  border: "1px solid var(--border-default)",
+                  cursor: "pointer",
+                }}
+              >
+                Floor Operations
+              </button>
+            </div>
+          </div>
+        )}
+        <ManagerFloorDashboard />
+      </>
+    );
+  }
+
   return (
     <>
       {/* 1. OPERATIONS HEADER */}
@@ -234,6 +299,51 @@ export default function OwnerDashboard() {
 
         {/* Action Controls */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          
+          {isOwner && (
+            <div
+              style={{
+                display: "inline-flex",
+                padding: "2px",
+                borderRadius: "var(--r-xs)",
+                background: "var(--bg-surface-inset)",
+                border: "1px solid var(--border-subtle)",
+                gap: 2,
+              }}
+            >
+              <button
+                onClick={() => setViewMode("overview")}
+                style={{
+                  all: "unset",
+                  padding: "4px 10px",
+                  borderRadius: "var(--r-xs)",
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: "var(--accent-primary)",
+                  background: "var(--bg-surface-raised)",
+                  border: "1px solid var(--border-default)",
+                  cursor: "pointer",
+                }}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setViewMode("floor")}
+                style={{
+                  all: "unset",
+                  padding: "4px 10px",
+                  borderRadius: "var(--r-xs)",
+                  fontSize: 11.5,
+                  fontWeight: 500,
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                Floor Ops
+              </button>
+            </div>
+          )}
+
           {/* Real-time pulse tag */}
           <div
             style={{

@@ -8,9 +8,24 @@ import type {
   BusinessKPIs,
   CategoryTableUsage,
   TableKind,
+  SessionItem,
 } from "@/lib/types";
 import { initialTables } from "@/lib/mock/tables";
 import { initialProducts } from "@/lib/mock/products";
+
+
+/** Formats remaining seconds into MM:SS or HH:MM */
+export function formatCountdown(seconds: number): string {
+  if (seconds <= 0) return "00:00";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const remM = m % 60;
+    return `${h}h ${remM.toString().padStart(2, "0")}m`;
+  }
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
 
 /** Formats elapsed seconds into HH:MM:SS */
 export function formatDurationFromStart(startIso?: string | null): string {
@@ -48,7 +63,7 @@ function getLocalDateStrings() {
   return { today, yesterday };
 }
 
-/** 1. Fetch real club tables from Turso */
+/** 1. Fetch real club tables from Turso with live timer & session merge */
 export async function getLiveTables(): Promise<ClubTable[]> {
   try {
     const client = getTursoClient();
@@ -58,8 +73,37 @@ export async function getLiveTables(): Promise<ClubTable[]> {
       return initialTables;
     }
 
+    // Query active sessions to link live match data
+    const activeSessionsRes = await client.execute("SELECT * FROM sessions WHERE status = 'active'");
+    const activeMap = new Map<string, any>();
+    for (const s of activeSessionsRes.rows as any[]) {
+      if (s.table_id) activeMap.set(String(s.table_id), s);
+    }
+
     return result.rows.map((row: any) => {
       const isPlaying = row.status === "playing";
+      const activeSess = activeMap.get(String(row.id));
+
+      const startIso = row.session_started_at || (activeSess ? activeSess.started_at : null);
+      const scheduledEndIso = row.scheduled_end_at || (activeSess ? activeSess.scheduled_end_at : null);
+
+      let remainingSec = 0;
+      let isTimeUp = false;
+
+      if (isPlaying && scheduledEndIso) {
+        remainingSec = Math.floor((new Date(scheduledEndIso).getTime() - Date.now()) / 1000);
+        isTimeUp = remainingSec <= 0;
+      }
+
+      let bill = 0;
+      if (isPlaying) {
+        if (activeSess) {
+          bill = Number(activeSess.final_total || activeSess.table_amount || 0);
+        } else if (startIso) {
+          bill = calculateAccruedBill(String(startIso), Number(row.hourly_rate), Number(row.min_fee || 50));
+        }
+      }
+
       return {
         id: String(row.id),
         number: Number(row.number),
@@ -68,14 +112,17 @@ export async function getLiveTables(): Promise<ClubTable[]> {
         status: row.status as ClubTable["status"],
         hourly_rate: Number(row.hourly_rate),
         min_fee: Number(row.min_fee || 50),
-        player: row.current_player ? String(row.current_player) : undefined,
-        phone: row.current_phone ? String(row.current_phone) : undefined,
-        session_started_at: row.session_started_at ? String(row.session_started_at) : undefined,
-        elapsed: isPlaying && row.session_started_at ? formatDurationFromStart(String(row.session_started_at)) : undefined,
-        bill: isPlaying && row.session_started_at
-          ? calculateAccruedBill(String(row.session_started_at), Number(row.hourly_rate), Number(row.min_fee || 50))
-          : undefined,
+        player: row.current_player ? String(row.current_player) : (activeSess ? String(activeSess.customer_name) : undefined),
+        phone: row.current_phone ? String(row.current_phone) : (activeSess ? String(activeSess.customer_phone) : undefined),
+        session_started_at: startIso ? String(startIso) : undefined,
+        scheduled_end_at: scheduledEndIso ? String(scheduledEndIso) : undefined,
+        duration_choice: (row.duration_choice || (activeSess ? activeSess.duration_choice : "30m")) as "30m" | "1h",
+        current_session_id: row.current_session_id ? String(row.current_session_id) : (activeSess ? String(activeSess.id) : undefined),
+        elapsed: isPlaying && startIso ? formatDurationFromStart(String(startIso)) : undefined,
+        bill,
         notes: row.notes ? String(row.notes) : undefined,
+        remaining_seconds: remainingSec,
+        is_time_up: isTimeUp,
       };
     });
   } catch (err) {
@@ -872,5 +919,422 @@ export async function settleArenaSession(params: {
   } catch (err) {
     console.error("Failed to settle arena session in Turso:", err);
     return false;
+  }
+}
+
+
+/** 16. Start Timed Floor Session (Atomic Server Guard & Snapshot) */
+export async function startFloorSession(params: {
+  tableId: string;
+  tableName: string;
+  tableKind: TableKind;
+  playerName: string;
+  phone?: string;
+  durationChoice: "30m" | "1h";
+  rateSnapshot: number;
+  managerName?: string;
+}): Promise<{ success: boolean; sessionId?: string; error?: string }> {
+  try {
+    const client = getTursoClient();
+
+    // 1. Atomic Availability Guard
+    const checkTable = await client.execute({
+      sql: "SELECT status FROM club_tables WHERE id = ?",
+      args: [params.tableId],
+    });
+
+    if (checkTable.rows.length > 0 && checkTable.rows[0].status === "playing") {
+      return { success: false, error: "Table is already occupied by an active match." };
+    }
+
+    const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const nowIso = new Date().toISOString();
+    const durationMins = params.durationChoice === "30m" ? 30 : 60;
+    const scheduledEndIso = new Date(Date.now() + durationMins * 60000).toISOString();
+
+    // 2. Insert Session with Rate Snapshot and Scheduled End
+    await client.execute({
+      sql: `INSERT INTO sessions (
+              id, table_id, table_name, table_kind, customer_name, customer_phone,
+              hourly_rate, rate_snapshot, started_at, scheduled_end_at, duration_choice, duration_minutes,
+              table_amount, final_total, status, paid, payment_status, created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 0, 'Unpaid', ?)`,
+      args: [
+        sessionId,
+        params.tableId,
+        params.tableName,
+        params.tableKind,
+        params.playerName.trim(),
+        params.phone ? params.phone.trim() : null,
+        params.rateSnapshot,
+        params.rateSnapshot,
+        nowIso,
+        scheduledEndIso,
+        params.durationChoice,
+        durationMins,
+        params.rateSnapshot,
+        params.rateSnapshot,
+        params.managerName || "manager",
+      ],
+    });
+
+    // 3. Mark Table Occupied
+    await client.execute({
+      sql: `UPDATE club_tables 
+            SET status = 'playing', current_player = ?, current_phone = ?,
+                session_started_at = ?, scheduled_end_at = ?, duration_choice = ?,
+                current_session_id = ?, updated_at = datetime('now')
+            WHERE id = ?`,
+      args: [
+        params.playerName.trim(),
+        params.phone ? params.phone.trim() : null,
+        nowIso,
+        scheduledEndIso,
+        params.durationChoice,
+        sessionId,
+        params.tableId,
+      ],
+    });
+
+    // 4. Record Audit Log
+    await client.execute({
+      sql: `INSERT INTO audit_logs (id, action, role, target_id, details) VALUES (?, ?, ?, ?, ?)`,
+      args: [
+        `audit_${Date.now()}`,
+        "START_SESSION",
+        "staff",
+        params.tableId,
+        JSON.stringify({
+          sessionId,
+          tableName: params.tableName,
+          player: params.playerName,
+          duration: params.durationChoice,
+          price: params.rateSnapshot,
+          manager: params.managerName || "manager",
+        }),
+      ],
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({ type: "floor_update", action: "start_session", tableId: params.tableId });
+        bc.close();
+      } catch (e) {}
+    }
+
+    return { success: true, sessionId };
+  } catch (err) {
+    console.error("Failed to start floor session:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 17. Extend Active Floor Session */
+export async function extendFloorSession(params: {
+  tableId: string;
+  sessionId?: string;
+  extensionChoice: "30m" | "1h";
+  extensionPrice: number;
+  managerName?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getTursoClient();
+
+    // Query active session
+    let sess: any = null;
+    if (params.sessionId) {
+      const res = await client.execute({
+        sql: "SELECT * FROM sessions WHERE id = ? AND status = 'active'",
+        args: [params.sessionId],
+      });
+      sess = res.rows[0];
+    }
+    if (!sess) {
+      const res = await client.execute({
+        sql: "SELECT * FROM sessions WHERE table_id = ? AND status = 'active' ORDER BY started_at DESC LIMIT 1",
+        args: [params.tableId],
+      });
+      sess = res.rows[0];
+    }
+
+    if (!sess) {
+      return { success: false, error: "No active session found to extend." };
+    }
+
+    const extMins = params.extensionChoice === "30m" ? 30 : 60;
+    const currentEndMs = sess.scheduled_end_at ? new Date(sess.scheduled_end_at).getTime() : Date.now();
+    // If time was already up, extend from now; otherwise extend from scheduled end
+    const baseMs = Math.max(Date.now(), currentEndMs);
+    const newScheduledEnd = new Date(baseMs + extMins * 60000).toISOString();
+
+    // Update Session: scheduled_end_at, duration_minutes, extension_count, extension_amount, table_amount, final_total
+    await client.execute({
+      sql: `UPDATE sessions 
+            SET scheduled_end_at = ?,
+                duration_minutes = duration_minutes + ?,
+                extension_count = COALESCE(extension_count, 0) + 1,
+                extension_amount = COALESCE(extension_amount, 0) + ?,
+                table_amount = table_amount + ?,
+                final_total = final_total + ?,
+                updated_at = datetime('now')
+            WHERE id = ?`,
+      args: [
+        newScheduledEnd,
+        extMins,
+        params.extensionPrice,
+        params.extensionPrice,
+        params.extensionPrice,
+        sess.id,
+      ],
+    });
+
+    // Update club table scheduled end
+    await client.execute({
+      sql: "UPDATE club_tables SET scheduled_end_at = ?, updated_at = datetime('now') WHERE id = ?",
+      args: [newScheduledEnd, params.tableId],
+    });
+
+    // Audit log
+    await client.execute({
+      sql: `INSERT INTO audit_logs (id, action, role, target_id, details) VALUES (?, ?, ?, ?, ?)`,
+      args: [
+        `audit_${Date.now()}`,
+        "EXTEND_SESSION",
+        "staff",
+        params.tableId,
+        JSON.stringify({
+          sessionId: sess.id,
+          extension: params.extensionChoice,
+          price: params.extensionPrice,
+          newEnd: newScheduledEnd,
+          manager: params.managerName || "manager",
+        }),
+      ],
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({ type: "floor_update", action: "extend_session", tableId: params.tableId });
+        bc.close();
+      } catch (e) {}
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to extend session:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 18. Add F&B Snacks / Cigarettes / Drinks to Session */
+export async function addSessionItems(params: {
+  sessionId: string;
+  tableId?: string;
+  items: { productId: string; productName: string; quantity: number; unitPrice: number }[];
+  managerName?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getTursoClient();
+    let totalAdded = 0;
+
+    for (const item of params.items) {
+      if (item.quantity <= 0) continue;
+      const itemId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const lineTotal = item.quantity * item.unitPrice;
+      totalAdded += lineTotal;
+
+      await client.execute({
+        sql: `INSERT INTO session_items (id, session_id, product_id, product_name, quantity, unit_price, total_price, added_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        args: [
+          itemId,
+          params.sessionId,
+          item.productId,
+          item.productName,
+          item.quantity,
+          item.unitPrice,
+          lineTotal,
+        ],
+      });
+    }
+
+    // Update Session items_amount and final_total
+    await client.execute({
+      sql: `UPDATE sessions 
+            SET items_amount = COALESCE(items_amount, 0) + ?,
+                final_total = final_total + ?,
+                updated_at = datetime('now')
+            WHERE id = ?`,
+      args: [totalAdded, totalAdded, params.sessionId],
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({ type: "floor_update", action: "add_items", sessionId: params.sessionId });
+        bc.close();
+      } catch (e) {}
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to add session items:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 19. Get Add-on Items for a Session */
+export async function getSessionItems(sessionId: string): Promise<SessionItem[]> {
+  try {
+    const client = getTursoClient();
+    const res = await client.execute({
+      sql: "SELECT * FROM session_items WHERE session_id = ? ORDER BY added_at ASC",
+      args: [sessionId],
+    });
+
+    return res.rows.map((r: any) => ({
+      id: String(r.id),
+      session_id: String(r.session_id),
+      product_id: String(r.product_id),
+      product_name: String(r.product_name),
+      quantity: Number(r.quantity),
+      unit_price: Number(r.unit_price),
+      total_price: Number(r.total_price),
+      added_at: String(r.added_at),
+    }));
+  } catch (err) {
+    console.debug("Error loading session items:", err);
+    return [];
+  }
+}
+
+/** 20. Settle Payment & Free Table (Cash, UPI, Mixed, or Udhar) */
+export async function collectFloorPayment(params: {
+  tableId: string;
+  sessionId: string;
+  finalTotal: number;
+  cashReceived: number;
+  upiReceived: number;
+  udharAmount: number;
+  upiReference?: string;
+  discountAmount?: number;
+  discountReason?: string;
+  managerName?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getTursoClient();
+
+    const totalPaid = params.cashReceived + params.upiReceived;
+    let paymentStatus: "Paid" | "Partially Paid" | "Unpaid" = "Paid";
+    let isPaid = 1;
+
+    if (params.udharAmount > 0) {
+      if (totalPaid > 0) {
+        paymentStatus = "Partially Paid";
+        isPaid = 0;
+      } else {
+        paymentStatus = "Unpaid";
+        isPaid = 0;
+      }
+    }
+
+    let paymentMethod = "cash";
+    if (params.cashReceived > 0 && params.upiReceived > 0) {
+      paymentMethod = "split";
+    } else if (params.upiReceived > 0) {
+      paymentMethod = "upi";
+    } else if (params.cashReceived > 0) {
+      paymentMethod = "cash";
+    } else if (params.udharAmount > 0) {
+      paymentMethod = "udhar";
+    }
+
+    // 1. Update session to completed
+    await client.execute({
+      sql: `UPDATE sessions 
+            SET status = 'completed',
+                ended_at = datetime('now'),
+                final_total = ?,
+                discount_amount = ?,
+                discount_reason = ?,
+                cash_paid = ?,
+                upi_paid = ?,
+                udhar_amount = ?,
+                upi_reference = ?,
+                paid = ?,
+                payment_status = ?,
+                payment_method = ?,
+                updated_at = datetime('now')
+            WHERE id = ?`,
+      args: [
+        params.finalTotal,
+        params.discountAmount || 0,
+        params.discountReason || null,
+        params.cashReceived,
+        params.upiReceived,
+        params.udharAmount,
+        params.upiReference || null,
+        isPaid,
+        paymentStatus,
+        paymentMethod,
+        params.sessionId,
+      ],
+    });
+
+    // 2. Free Table
+    await client.execute({
+      sql: `UPDATE club_tables 
+            SET status = 'available',
+                current_player = NULL,
+                current_phone = NULL,
+                session_started_at = NULL,
+                scheduled_end_at = NULL,
+                duration_choice = NULL,
+                current_session_id = NULL,
+                notes = NULL,
+                updated_at = datetime('now')
+            WHERE id = ?`,
+      args: [params.tableId],
+    });
+
+    // 3. Audit Log
+    await client.execute({
+      sql: `INSERT INTO audit_logs (id, action, role, target_id, details) VALUES (?, ?, ?, ?, ?)`,
+      args: [
+        `audit_${Date.now()}`,
+        "SETTLE_PAYMENT",
+        "staff",
+        params.tableId,
+        JSON.stringify({
+          sessionId: params.sessionId,
+          finalTotal: params.finalTotal,
+          cash: params.cashReceived,
+          upi: params.upiReceived,
+          udhar: params.udharAmount,
+          method: paymentMethod,
+          status: paymentStatus,
+          manager: params.managerName || "manager",
+        }),
+      ],
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({ type: "floor_update", action: "settle_payment", tableId: params.tableId });
+        bc.close();
+      } catch (e) {}
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to collect floor payment:", err);
+    return { success: false, error: String(err) };
   }
 }
