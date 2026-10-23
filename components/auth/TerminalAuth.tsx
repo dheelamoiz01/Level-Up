@@ -42,11 +42,11 @@ export function TerminalAuth() {
       <div
         style={{
           position: "absolute",
-          top: "30%",
+          top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: "500px",
-          height: "360px",
+          width: "480px",
+          height: "320px",
           background: "radial-gradient(circle, rgba(0, 199, 138, 0.05) 0%, transparent 70%)",
           pointerEvents: "none",
         }}
@@ -59,53 +59,14 @@ export function TerminalAuth() {
           background: "var(--bg-surface)",
           border: "1px solid var(--border-default)",
           borderRadius: "var(--r-lg)",
-          padding: "36px 30px",
+          padding: "32px 28px",
           boxShadow: "var(--shadow-lg)",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
           position: "relative",
           zIndex: 1,
         }}
       >
-        {/* Brand Pill - ONLY "LEVEL UP" with no extra titles or subheadings */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "6px 16px",
-            borderRadius: "var(--r-full)",
-            background: "rgba(0, 199, 138, 0.08)",
-            border: "1px solid #15382A",
-            marginBottom: 28,
-            userSelect: "none",
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: "var(--accent-primary)",
-              boxShadow: "0 0 10px rgba(0, 199, 138, 0.7)",
-              display: "inline-block",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: "0.12em",
-              color: "var(--accent-primary)",
-              textTransform: "uppercase",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            LEVEL UP
-          </span>
-        </div>
-
         {/* Authentication Form */}
         <form
           onSubmit={handleSubmit}
@@ -251,7 +212,7 @@ export function TerminalAuth() {
             type="submit"
             disabled={loading}
             style={{
-              marginTop: 10,
+              marginTop: 6,
               height: 42,
               background: "var(--accent-primary)",
               color: "#030806",
