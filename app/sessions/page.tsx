@@ -215,7 +215,9 @@ export default function SessionsPage() {
                     <tr key={s.id} style={{ borderBottom: "1px solid var(--border-subtle)" }} className="table-row-hover">
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 13 }}>{s.player}</div>
-                        {s.phone && <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{s.phone}</div>}
+                        {s.phone && s.phone !== "null" && (
+                          <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{s.phone}</div>
+                        )}
                       </td>
                       <td style={{ padding: "12px 16px", fontSize: 12, color: "var(--text-secondary)" }}>
                         {s.table} ({s.table_kind || "Snooker"})

@@ -132,12 +132,10 @@ export default function ReportsPage() {
     .reduce((sum, s) => sum + (s.amount || 0), 0);
 
   const cashCollected = filteredSessions
-    .filter((s) => s.paid && (!s.payment_method || s.payment_method === "cash"))
-    .reduce((sum, s) => sum + (s.amount || 0), 0);
+    .reduce((sum, s) => sum + (s.cash_paid != null ? s.cash_paid : (s.paid && (!s.payment_method || s.payment_method === "cash") ? s.amount : 0)), 0);
 
   const digitalCollected = filteredSessions
-    .filter((s) => s.paid && s.payment_method === "upi")
-    .reduce((sum, s) => sum + (s.amount || 0), 0);
+    .reduce((sum, s) => sum + (s.upi_paid != null ? s.upi_paid : (s.paid && s.payment_method === "upi" ? s.amount : 0)), 0);
 
   const totalExpenseAmount = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const netCollection = totalCollected - totalExpenseAmount;

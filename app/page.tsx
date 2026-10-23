@@ -27,6 +27,7 @@ import {
   getCategoryTableUsageToday,
   getLiveSessions,
   getLiveTables,
+  getTablePricing,
   formatDurationFromStart,
   calculateAccruedBill,
 } from "@/lib/turso/service";
@@ -36,8 +37,10 @@ import type {
   ClubTable,
   SessionRow,
   TableKind,
+  TablePricing,
 } from "@/lib/types";
-import { SessionDrawer } from "@/components/sessions/SessionDrawer";
+import { StartSessionModal } from "@/components/floor/StartSessionModal";
+import { ManageSessionModal } from "@/components/floor/ManageSessionModal";
 import { ManagerFloorDashboard } from "@/components/floor/ManagerFloorDashboard";
 
 export default function DashboardPage() {
@@ -84,24 +87,28 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [managerFilter, setManagerFilter] = useState<string>("All");
 
-  // Modal & Drawer States
-  const [selectedTableForDrawer, setSelectedTableForDrawer] = useState<ClubTable | null>(null);
+  // Modal States
+  const [startModalTable, setStartModalTable] = useState<ClubTable | null>(null);
+  const [manageModalTable, setManageModalTable] = useState<ClubTable | null>(null);
+  const [pricingList, setPricingList] = useState<TablePricing[]>([]);
   const [detailModalSession, setDetailModalSession] = useState<SessionRow | null>(null);
 
   // Load Real Data from Turso
   const loadDashboardData = async () => {
     try {
-      const [liveKPIs, liveCatUsage, liveTables, liveSessions] = await Promise.all([
+      const [liveKPIs, liveCatUsage, liveTables, liveSessions, livePricing] = await Promise.all([
         getBusinessKPIs(),
         getCategoryTableUsageToday(),
         getLiveTables(),
         getLiveSessions(100),
+        getTablePricing(),
       ]);
 
       setKpis(liveKPIs);
       setCategoryUsage(liveCatUsage);
       setTables(liveTables);
       setSessions(liveSessions);
+      setPricingList(livePricing);
       setLastRefreshed(new Date());
     } catch (err) {
       console.error("Dashboard load error:", err);
@@ -351,7 +358,7 @@ export default function DashboardPage() {
           <button
             onClick={() => {
               const available = tables.find((t) => t.status === "available");
-              setSelectedTableForDrawer(available || tables[0]);
+              setStartModalTable(available || tables[0]);
             }}
             className="btn btn-primary"
             style={{ height: 32, fontSize: 12, gap: 5 }}
@@ -790,12 +797,30 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Slide-out Session Workspace */}
-      <SessionDrawer
-        table={selectedTableForDrawer}
-        onClose={() => setSelectedTableForDrawer(null)}
-        onSessionUpdated={() => loadDashboardData()}
-      />
+      {/* Standard Modals */}
+      {startModalTable && (
+        <StartSessionModal
+          table={startModalTable}
+          pricingList={pricingList}
+          onClose={() => setStartModalTable(null)}
+          onSessionStarted={() => {
+            setStartModalTable(null);
+            loadDashboardData();
+          }}
+        />
+      )}
+
+      {manageModalTable && (
+        <ManageSessionModal
+          table={manageModalTable}
+          pricingList={pricingList}
+          onClose={() => setManageModalTable(null)}
+          onSessionUpdated={() => {
+            setManageModalTable(null);
+            loadDashboardData();
+          }}
+        />
+      )}
 
       {/* Match Details Modal */}
       {detailModalSession && (

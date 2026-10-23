@@ -113,7 +113,11 @@ export async function getLiveTables(): Promise<ClubTable[]> {
         hourly_rate: Number(row.hourly_rate),
         min_fee: Number(row.min_fee || 50),
         player: row.current_player ? String(row.current_player) : (activeSess ? String(activeSess.customer_name) : undefined),
-        phone: row.current_phone ? String(row.current_phone) : (activeSess ? String(activeSess.customer_phone) : undefined),
+        phone: (() => {
+          const p = row.current_phone || (activeSess ? activeSess.customer_phone : null);
+          if (!p || String(p) === "null" || String(p).trim() === "") return undefined;
+          return String(p).trim();
+        })(),
         session_started_at: startIso ? String(startIso) : undefined,
         scheduled_end_at: scheduledEndIso ? String(scheduledEndIso) : undefined,
         duration_choice: (row.duration_choice || (activeSess ? activeSess.duration_choice : "30m")) as "30m" | "1h",
@@ -183,7 +187,7 @@ export async function getLiveSessions(limit: number = 50): Promise<SessionRow[]>
         table: String(s.table_name || "Arena Table"),
         table_kind: (s.table_kind as TableKind) || "Snooker",
         player: String(s.customer_name || "Walk-in Player"),
-        phone: s.customer_phone ? String(s.customer_phone) : undefined,
+        phone: s.customer_phone && String(s.customer_phone) !== "null" ? String(s.customer_phone) : undefined,
         hourly_rate: Number(s.hourly_rate),
         rate_snapshot: Number(s.rate_snapshot || s.hourly_rate),
         started_at: String(s.started_at),
@@ -200,6 +204,10 @@ export async function getLiveSessions(limit: number = 50): Promise<SessionRow[]>
         payment_method: s.payment_method || "cash",
         created_by: String(s.created_by || "manager"),
         status: (s.status as SessionRow["status"]) || "active",
+        cash_paid: s.cash_paid != null ? Number(s.cash_paid) : undefined,
+        upi_paid: s.upi_paid != null ? Number(s.upi_paid) : undefined,
+        udhar_amount: s.udhar_amount != null ? Number(s.udhar_amount) : undefined,
+        upi_reference: s.upi_reference ? String(s.upi_reference) : undefined,
       };
     });
   } catch (err) {
@@ -216,7 +224,8 @@ export async function getBusinessKPIs(): Promise<BusinessKPIs> {
 
     // Query today's & yesterday's sessions
     const sessionsRes = await client.execute({
-      sql: `SELECT customer_name, customer_phone, started_at, final_total, table_amount, items_amount, paid, payment_method, status 
+      sql: `SELECT customer_name, customer_phone, started_at, final_total, table_amount, items_amount, 
+                   paid, payment_status, payment_method, cash_paid, upi_paid, udhar_amount, status 
             FROM sessions 
             WHERE date(started_at) >= ?`,
       args: [yesterday],
@@ -238,27 +247,24 @@ export async function getBusinessKPIs(): Promise<BusinessKPIs> {
     let totalRevenueBilled = 0;
 
     for (const row of sessionsRes.rows as any[]) {
+      if (row.status === "voided") continue;
       const dateStr = String(row.started_at).slice(0, 10);
       const custIdentifier = (row.customer_phone || row.customer_name || "").toLowerCase().trim();
       const amount = Number(row.final_total || 0);
       const isPaid = Boolean(row.paid) || row.payment_status === "Paid";
+      const cash = Number(row.cash_paid || (isPaid && row.payment_method === "cash" ? amount : 0));
+      const upi = Number(row.upi_paid || (isPaid && row.payment_method === "upi" ? amount : 0));
+      const collected = cash + upi;
 
       if (dateStr === today) {
         if (custIdentifier) todayCustomersSet.add(custIdentifier);
         totalRevenueBilled += amount;
-        if (isPaid) {
-          todayCollection += amount;
-          if (row.payment_method === "cash") {
-            cashCollection += amount;
-          } else {
-            digitalCollection += amount;
-          }
-        }
+        todayCollection += collected > 0 ? collected : (isPaid ? amount : 0);
+        cashCollection += cash;
+        digitalCollection += upi;
       } else if (dateStr === yesterday) {
         if (custIdentifier) yesterdayCustomersSet.add(custIdentifier);
-        if (isPaid) {
-          yesterdayCollection += amount;
-        }
+        yesterdayCollection += collected > 0 ? collected : (isPaid ? amount : 0);
       }
     }
 
@@ -354,11 +360,11 @@ export async function getCategoryTableUsageToday(): Promise<Record<TableKind, Ca
       }
     }
 
-    // Query today's sessions
+    // Query today's sessions (excluding voided)
     const sessionsRes = await client.execute({
       sql: `SELECT table_kind, customer_name, customer_phone, final_total, paid, duration_minutes 
             FROM sessions 
-            WHERE date(started_at) = ?`,
+            WHERE date(started_at) = ? AND status != 'voided'`,
       args: [today],
     });
 
@@ -707,7 +713,7 @@ export async function getStaffAccountability(): Promise<StaffStats[]> {
     const res = await client.execute({
       sql: `SELECT created_by, status, paid, final_total 
             FROM sessions 
-            WHERE date(started_at) = ?`,
+            WHERE date(started_at) = ? AND status != 'voided'`,
       args: [today],
     });
 
@@ -1097,9 +1103,28 @@ export async function startFloorSession(params: {
     });
 
     if (typeof window !== "undefined") {
+      const alertNotif = {
+        id: `start-alert-${sessionId}-${Date.now()}`,
+        title: `🟢 Match Started: ${params.tableName}`,
+        body: `Match for "${params.playerName.trim()}" (${params.durationChoice} · ₹${params.rateSnapshot}) started by ${params.managerName || "manager"}.`,
+        table_id: params.tableId,
+        table_name: params.tableName,
+        type: "session_start" as const,
+        timestamp: Date.now(),
+        read: false,
+      };
+
+      window.dispatchEvent(
+        new CustomEvent("levelup_trigger_notif", { detail: alertNotif })
+      );
       window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+
       try {
         const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({
+          type: "TRIGGER_FLOOR_ALERT",
+          notif: alertNotif,
+        });
         bc.postMessage({ type: "floor_update", action: "start_session", tableId: params.tableId });
         bc.close();
       } catch (e) {}
@@ -1575,6 +1600,127 @@ export async function voidOrDeleteSession(params: {
     return { success: true };
   } catch (err) {
     console.error("Failed to void session:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 23. Settle Customer Outstanding Udhar */
+export async function settleCustomerUdhar(params: {
+  customerName: string;
+  customerPhone?: string;
+  amountCollected: number;
+  paymentMethod: "cash" | "upi";
+  upiReference?: string;
+  managerName?: string;
+}): Promise<{ success: boolean; settledAmount?: number; error?: string }> {
+  try {
+    const client = getTursoClient();
+
+    // 1. Fetch unpaid or partial sessions for this customer
+    const res = await client.execute({
+      sql: `SELECT id, final_total, cash_paid, upi_paid, udhar_amount, status
+            FROM sessions
+            WHERE (customer_name = ? OR (customer_phone IS NOT NULL AND customer_phone != '' AND customer_phone = ?))
+              AND (paid = 0 OR udhar_amount > 0)
+              AND status != 'voided'
+            ORDER BY started_at ASC`,
+      args: [params.customerName, params.customerPhone || params.customerName],
+    });
+
+    let remainingToApply = params.amountCollected;
+    let totalSettled = 0;
+
+    for (const row of res.rows as any[]) {
+      if (remainingToApply <= 0) break;
+      const sessId = String(row.id);
+      const finalTot = Number(row.final_total || 0);
+      const existingCash = Number(row.cash_paid || 0);
+      const existingUpi = Number(row.upi_paid || 0);
+      const existingUdhar = Number(row.udhar_amount ?? Math.max(0, finalTot - existingCash - existingUpi));
+
+      if (existingUdhar <= 0) continue;
+
+      const applyAmt = Math.min(remainingToApply, existingUdhar);
+      const newUdhar = Math.max(0, existingUdhar - applyAmt);
+      const isNowPaid = newUdhar === 0 ? 1 : 0;
+      const newStatus = isNowPaid ? "Paid" : "Partially Paid";
+      const newCash = params.paymentMethod === "cash" ? existingCash + applyAmt : existingCash;
+      const newUpi = params.paymentMethod === "upi" ? existingUpi + applyAmt : existingUpi;
+
+      await client.execute({
+        sql: `UPDATE sessions
+              SET paid = ?,
+                  payment_status = ?,
+                  payment_method = ?,
+                  cash_paid = ?,
+                  upi_paid = ?,
+                  udhar_amount = ?,
+                  upi_reference = COALESCE(?, upi_reference),
+                  updated_at = datetime('now')
+              WHERE id = ?`,
+        args: [
+          isNowPaid,
+          newStatus,
+          params.paymentMethod,
+          newCash,
+          newUpi,
+          newUdhar,
+          params.upiReference || null,
+          sessId,
+        ],
+      });
+
+      remainingToApply -= applyAmt;
+      totalSettled += applyAmt;
+    }
+
+    // 2. Insert audit log
+    await client.execute({
+      sql: `INSERT INTO audit_logs (id, action, role, details) VALUES (?, ?, ?, ?)`,
+      args: [
+        `audit_udhar_${Date.now()}`,
+        "COLLECT_UDHAR",
+        "staff",
+        JSON.stringify({
+          customer: params.customerName,
+          phone: params.customerPhone,
+          amountCollected: params.amountCollected,
+          method: params.paymentMethod,
+          upiRef: params.upiReference,
+          manager: params.managerName || "manager",
+          timestamp: new Date().toISOString(),
+        }),
+      ],
+    });
+
+    // 3. Trigger alert notification for Owner
+    if (typeof window !== "undefined") {
+      const alertNotif = {
+        id: `udhar-collect-${Date.now()}`,
+        title: `💵 Udhar Collected: ${params.customerName}`,
+        body: `₹${params.amountCollected} collected via ${params.paymentMethod.toUpperCase()} by ${params.managerName || "manager"}.`,
+        type: "session_end" as const,
+        timestamp: Date.now(),
+        read: false,
+      };
+
+      window.dispatchEvent(new CustomEvent("levelup_trigger_notif", { detail: alertNotif }));
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({
+          type: "TRIGGER_FLOOR_ALERT",
+          notif: alertNotif,
+        });
+        bc.postMessage({ type: "floor_update", action: "settle_udhar" });
+        bc.close();
+      } catch (e) {}
+    }
+
+    return { success: true, settledAmount: totalSettled };
+  } catch (err) {
+    console.error("Failed to settle customer udhar:", err);
     return { success: false, error: String(err) };
   }
 }

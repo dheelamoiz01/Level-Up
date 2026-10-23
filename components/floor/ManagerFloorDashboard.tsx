@@ -315,8 +315,8 @@ export function ManagerFloorDashboard() {
           style={{
             padding: "12px 16px",
             marginBottom: 20,
-            background: "rgba(239, 68, 68, 0.08)",
-            border: "1px solid rgba(239, 68, 68, 0.35)",
+            background: "rgba(245, 158, 11, 0.08)",
+            border: "1px solid rgba(245, 158, 11, 0.4)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -325,9 +325,9 @@ export function ManagerFloorDashboard() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <AlertTriangle size={18} style={{ color: "var(--danger)", flexShrink: 0 }} />
+            <AlertTriangle size={18} style={{ color: "var(--amber)", flexShrink: 0 }} />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--amber)" }}>
                 Match duration expired on: {endingSoonTables.filter((t) => t.is_time_up).map((t) => t.name).join(", ")}
               </div>
               <div style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
@@ -347,9 +347,10 @@ export function ManagerFloorDashboard() {
                   style={{
                     height: 32,
                     fontSize: 11.5,
-                    fontWeight: 600,
-                    borderColor: "rgba(239, 68, 68, 0.4)",
-                    color: "var(--danger)",
+                    fontWeight: 700,
+                    borderColor: "rgba(245, 158, 11, 0.5)",
+                    color: "var(--amber)",
+                    background: "rgba(245, 158, 11, 0.12)",
                   }}
                 >
                   Manage {t.name}

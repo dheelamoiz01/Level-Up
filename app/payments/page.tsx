@@ -57,15 +57,17 @@ export default function PaymentsPage() {
   }, [todaySessions]);
 
   const cashCollected = useMemo(() => {
-    return todaySessions
-      .filter((s) => s.paid && (!s.payment_method || s.payment_method === "cash"))
-      .reduce((sum, s) => sum + (s.amount || 0), 0);
+    return todaySessions.reduce((sum, s) => {
+      if (s.cash_paid != null) return sum + s.cash_paid;
+      return sum + (s.paid && (!s.payment_method || s.payment_method === "cash") ? s.amount : 0);
+    }, 0);
   }, [todaySessions]);
 
   const digitalCollected = useMemo(() => {
-    return todaySessions
-      .filter((s) => s.paid && s.payment_method === "upi")
-      .reduce((sum, s) => sum + (s.amount || 0), 0);
+    return todaySessions.reduce((sum, s) => {
+      if (s.upi_paid != null) return sum + s.upi_paid;
+      return sum + (s.paid && s.payment_method === "upi" ? s.amount : 0);
+    }, 0);
   }, [todaySessions]);
 
   const pendingUdhar = useMemo(() => {

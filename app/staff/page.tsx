@@ -13,7 +13,9 @@ import {
   TrendingUp,
   Receipt,
   User,
+  ShieldAlert,
 } from "lucide-react";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { getStaffAccountability, getLiveSessions } from "@/lib/turso/service";
 import type { StaffStats, SessionRow } from "@/lib/types";
@@ -46,6 +48,51 @@ export default function StaffPage() {
     window.addEventListener("levelup_floor_update", handleSync);
     return () => window.removeEventListener("levelup_floor_update", handleSync);
   }, []);
+
+  if (!isOwner) {
+    return (
+      <div
+        className="glass-card"
+        style={{
+          padding: "48px 24px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          gap: 16,
+          maxWidth: 500,
+          margin: "60px auto",
+        }}
+      >
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            background: "rgba(239, 68, 68, 0.12)",
+            color: "var(--danger)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ShieldAlert size={24} />
+        </div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>
+          Owner Access Required
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
+          Staff accountability, manager telemetry logs, and clearance tracking are restricted to the Club Owner.
+        </p>
+        <Link href="/">
+          <button className="btn btn-primary" style={{ marginTop: 8 }}>
+            Return to Live Floor
+          </button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <>
