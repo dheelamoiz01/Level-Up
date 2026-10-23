@@ -263,7 +263,7 @@ export function ManageSessionModal({
         style={{
           width: "100%",
           maxWidth: 580,
-          maxHeight: "92vh",
+          maxHeight: "calc(100dvh - 32px)",
           overflowY: "auto",
           background: "var(--bg-surface-raised)",
           border: isTimeUp

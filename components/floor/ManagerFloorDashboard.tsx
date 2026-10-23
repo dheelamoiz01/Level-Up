@@ -179,7 +179,7 @@ export function ManagerFloorDashboard() {
         {/* Header Controls */}
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           {/* Quick Filter Search */}
-          <div style={{ position: "relative", minWidth: 200 }}>
+          <div style={{ position: "relative", minWidth: 160, flex: 1 }}>
             <Search
               size={13}
               style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}

@@ -818,6 +818,8 @@ export default function DashboardPage() {
             style={{
               width: "100%",
               maxWidth: 420,
+              maxHeight: "calc(100dvh - 32px)",
+              overflowY: "auto",
               background: "var(--bg-surface-raised)",
               border: "1px solid var(--border-default)",
               borderRadius: "var(--r-md)",

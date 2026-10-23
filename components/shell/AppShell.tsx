@@ -10,11 +10,9 @@ import {
   BarChart3,
   Settings,
   Bell,
-  Search,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Sliders,
   LogOut,
   RefreshCw,
   Receipt,
@@ -58,8 +56,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const path = usePathname();
 
@@ -72,6 +68,49 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
     } catch (e) {}
   }, []);
+
+  // Close dropdowns on click outside or Escape
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".user-profile-wrapper") && !target.closest(".notif-wrapper")) {
+        setProfileOpen(false);
+        setNotifOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setProfileOpen(false);
+        setNotifOpen(false);
+        setMobileDrawerOpen(false);
+      }
+    };
+
+    if (profileOpen || notifOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [profileOpen, notifOpen]);
+
+  // Lock body scroll when mobile navigation drawer is open
+  useEffect(() => {
+    if (mobileDrawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileDrawerOpen]);
 
   const toggleSidebar = () => {
     const next = !collapsed;
@@ -263,90 +302,34 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="main">
         {/* Simplified Top Toolbar */}
         <header className="topbar">
-          {/* Mobile Menu Hamburger */}
-          <button
-            onClick={() => setMobileDrawerOpen(true)}
-            className="btn mobile-only-btn"
-            style={{ width: 34, height: 34, padding: 0, marginRight: 8, display: "none" }}
-            aria-label="Open Navigation"
-          >
-            <Menu size={16} />
-          </button>
+          {/* Left area: Hamburger on mobile, Mobile Brand, Page title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* Mobile Menu Hamburger */}
+            <button
+              onClick={() => setMobileDrawerOpen(true)}
+              className="btn mobile-only-btn"
+              aria-label="Open Navigation"
+              style={{ width: 34, height: 34, padding: 0 }}
+            >
+              <Menu size={16} />
+            </button>
 
-          {/* Quick Search */}
-          <div style={{ position: "relative", flex: 1, maxWidth: 380 }}>
-            <label className="search">
-              <Search size={14} strokeWidth={2} style={{ color: "var(--text-muted)" }} />
-              <input
-                placeholder="Search tables, players, sessions..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
-              />
-              <span className="search-kbd">⌘K</span>
-            </label>
+            {/* Mobile Brand when sidebar is hidden */}
+            <div className="mobile-only-brand">
+              <Logo compact />
+            </div>
 
-            {searchFocused && (
-              <div
-                className="dropdown-menu"
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 6px)",
-                  left: 0,
-                  right: 0,
-                  padding: "8px",
-                  zIndex: 60,
-                }}
-              >
-                <div style={{ padding: "4px 8px 6px", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
-                  Quick Jump
-                </div>
-                <Link
-                  href="/tables"
-                  className="dropdown-item"
-                  style={{ justifyContent: "space-between" }}
-                  onMouseDown={(e) => e.preventDefault()}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <CircleDot size={13} style={{ color: "var(--accent-primary)" }} />
-                    <span>Royal Table 1 &amp; 2</span>
-                  </div>
-                  <span className="badge" data-s="available" style={{ fontSize: 10 }}>VIP Salon</span>
-                </Link>
-                <Link
-                  href="/tables"
-                  className="dropdown-item"
-                  style={{ justifyContent: "space-between" }}
-                  onMouseDown={(e) => e.preventDefault()}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <CircleDot size={13} style={{ color: "var(--accent-primary)" }} />
-                    <span>Snooker 1 &amp; 2</span>
-                  </div>
-                  <span className="badge" data-s="available" style={{ fontSize: 10 }}>12ft Tournament</span>
-                </Link>
-                {isOwner && (
-                  <Link
-                    href="/pricing"
-                    className="dropdown-item"
-                    style={{ justifyContent: "space-between" }}
-                    onMouseDown={(e) => e.preventDefault()}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <DollarSign size={13} style={{ color: "var(--accent-primary)" }} />
-                      <span>Table Pricing Matrix</span>
-                    </div>
-                    <span style={{ fontSize: 10, color: "var(--accent-primary)", fontWeight: 600 }}>Tariffs</span>
-                  </Link>
-                )}
-              </div>
-            )}
+            {/* Current Section Title */}
+            <div className="topbar-context-title">
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+                {currentNav.find((n) => n.href === path)?.label || (path === "/tables" ? "Live Tables" : "Level Up")}
+              </span>
+            </div>
           </div>
 
           {/* Right Topbar Controls */}
-          <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
-            {/* Sync telemetry button */}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+            {/* Refresh live floor data */}
             <button
               onClick={handleRefresh}
               className="btn"
@@ -364,7 +347,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
 
             {/* Notification Control & Dropdown */}
-            <div style={{ position: "relative" }}>
+            <div className="notif-wrapper" style={{ position: "relative" }}>
               <button
                 onClick={() => {
                   setNotifOpen(!notifOpen);
@@ -454,8 +437,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
             </div>
 
-            {/* Profile Pill */}
-            <div style={{ position: "relative" }}>
+            {/* Profile Pill & Simplified Dropdown */}
+            <div className="user-profile-wrapper" style={{ position: "relative" }}>
               <div
                 className="user-profile-badge"
                 aria-label="User profile"
@@ -465,9 +448,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 }}
               >
                 <div className="avatar-circle">{isOwner ? "OW" : "MG"}</div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
-                  {isOwner ? "Owner" : "Manager"}
-                </span>
+                <div className="user-profile-info" style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2 }}>
+                    {isOwner ? "Owner" : "Manager"}
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--text-muted)", lineHeight: 1 }}>
+                    {isOwner ? "Proprietor" : "Floor Ops"}
+                  </span>
+                </div>
                 <ChevronDown size={12} style={{ color: "var(--text-muted)", marginLeft: 2 }} />
               </div>
 
@@ -478,52 +466,61 @@ export function AppShell({ children }: { children: ReactNode }) {
                     position: "absolute",
                     top: "calc(100% + 8px)",
                     right: 0,
-                    width: 200,
+                    width: 220,
                     padding: "10px",
                     zIndex: 60,
                   }}
                 >
-                  <div style={{ paddingBottom: 6, borderBottom: "1px solid var(--border-subtle)", marginBottom: 6 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)" }}>{user?.title}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{user?.username}@levelup.club</div>
+                  {/* Logged-in user identity */}
+                  <div style={{ padding: "6px 8px 10px", display: "flex", alignItems: "center", gap: 10 }}>
+                    <div className="avatar-circle" style={{ width: 34, height: 34, fontSize: 12, flexShrink: 0 }}>
+                      {isOwner ? "OW" : "MG"}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: "var(--text-primary)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {user?.title || (isOwner ? "Club Owner" : "Floor Manager")}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "capitalize" }}>
+                        {isOwner ? "Owner & Admin" : "Floor Manager"}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    {isOwner ? (
-                      <>
-                        <Link href="/pricing" className="dropdown-item" onClick={() => setProfileOpen(false)}>
-                          <Sliders size={13} />
-                          <span>Rate Settings</span>
-                        </Link>
-                        <Link href="/reports" className="dropdown-item" onClick={() => setProfileOpen(false)}>
-                          <BarChart3 size={13} />
-                          <span>Daily Shift Report</span>
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <Link href="/" className="dropdown-item" onClick={() => setProfileOpen(false)}>
-                          <CircleDot size={13} />
-                          <span>Live Table Floor</span>
-                        </Link>
-                        <Link href="/sessions" className="dropdown-item" onClick={() => setProfileOpen(false)}>
-                          <Clock size={13} />
-                          <span>Shift Match Logs</span>
-                        </Link>
-                      </>
-                    )}
-                    <div style={{ height: 1, background: "var(--border-subtle)", margin: "4px 0" }} />
-                    <button
-                      className="dropdown-item"
-                      style={{ color: "var(--amber)", width: "100%", textAlign: "left" }}
-                      onClick={() => {
-                        setProfileOpen(false);
-                        logout();
-                      }}
-                    >
-                      <LogOut size={13} />
-                      <span>Lock Terminal</span>
-                    </button>
-                  </div>
+
+                  {/* Subtle divider */}
+                  <div style={{ height: 1, background: "var(--border-subtle)", margin: "4px 0 6px" }} />
+
+                  {/* Sign Out Button */}
+                  <button
+                    className="dropdown-item"
+                    style={{
+                      color: "var(--danger)",
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 10px",
+                      borderRadius: "var(--r-xs)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      setProfileOpen(false);
+                      logout();
+                    }}
+                  >
+                    <LogOut size={14} />
+                    <span>Sign Out</span>
+                  </button>
                 </div>
               )}
             </div>

@@ -106,7 +106,7 @@ export default function SessionsPage() {
           flexWrap: "wrap",
         }}
       >
-        <div style={{ position: "relative", minWidth: 220, flex: 1 }}>
+        <div style={{ position: "relative", minWidth: 160, flex: 1 }}>
           <Search
             size={13}
             style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}

@@ -112,6 +112,8 @@ export function StartSessionModal({
         style={{
           width: "100%",
           maxWidth: 480,
+          maxHeight: "calc(100dvh - 32px)",
+          overflowY: "auto",
           background: "var(--bg-surface-raised)",
           border: "1px solid var(--border-default)",
           borderRadius: "var(--r-md)",
@@ -189,7 +191,7 @@ export function StartSessionModal({
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
             <div>
               <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6 }}>
                 Phone Number (Optional)

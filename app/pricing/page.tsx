@@ -309,7 +309,7 @@ export default function TablePricingPage() {
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 16 }}>
           {categories.map((cat) => {
             const form = formState[cat.kind];
             const pInfo = pricing.find((p) => p.category === cat.kind);
