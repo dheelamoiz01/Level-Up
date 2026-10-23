@@ -19,14 +19,14 @@ import {
 
 interface StartSessionModalProps {
   table: ClubTable | null;
-  pricingList: TablePricing[];
+  pricingList?: TablePricing[];
   onClose: () => void;
   onSessionStarted: () => void;
 }
 
 export function StartSessionModal({
   table,
-  pricingList,
+  pricingList = [],
   onClose,
   onSessionStarted,
 }: StartSessionModalProps) {

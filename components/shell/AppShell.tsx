@@ -1,24 +1,29 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   CircleDot,
   Users,
-  Package,
   BarChart3,
   Settings,
   Bell,
   Search,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Sliders,
   LogOut,
   RefreshCw,
   Receipt,
   DollarSign,
   UserCheck,
+  Clock,
+  CreditCard,
+  Menu,
+  X,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
@@ -26,19 +31,31 @@ import { NotificationListener } from "@/components/realtime/NotificationListener
 import { useAuth } from "@/lib/auth/AuthContext";
 import { TerminalAuth } from "@/components/auth/TerminalAuth";
 
-const primaryNav = [
+// Owner Navigation (8 items as specified)
+const ownerNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tables", label: "Live Tables", icon: CircleDot },
-  { href: "/customers", label: "Customers", icon: Users },
   { href: "/pricing", label: "Table Pricing", icon: DollarSign },
   { href: "/expenses", label: "Expenses", icon: Receipt },
-  { href: "/products", label: "Products", icon: Package },
-  { href: "/staff", label: "Staff", icon: UserCheck },
   { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/staff", label: "Staff", icon: UserCheck },
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
+
+// Manager Navigation (Floor Operations only - 5 items as specified)
+const managerNav = [
+  { href: "/", label: "Live Tables", icon: CircleDot },
+  { href: "/sessions", label: "Sessions", icon: Clock },
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/payments", label: "Payments", icon: CreditCard },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, isLoading, logout, isOwner } = useAuth();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -46,8 +63,30 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [refreshing, setRefreshing] = useState(false);
   const path = usePathname();
 
+  // Restore sidebar collapsed preference from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("levelup_sidebar_collapsed");
+      if (stored !== null) {
+        setCollapsed(stored === "true");
+      }
+    } catch (e) {}
+  }, []);
+
+  const toggleSidebar = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    try {
+      localStorage.setItem("levelup_sidebar_collapsed", String(next));
+    } catch (e) {}
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
+    // Dispatch floor update event
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+    }
     setTimeout(() => setRefreshing(false), 500);
   };
 
@@ -83,36 +122,71 @@ export function AppShell({ children }: { children: ReactNode }) {
     return <TerminalAuth />;
   }
 
-  const navButtons = primaryNav.map(({ href, label, icon: Icon }) => {
-    const active = path === href;
-    return (
-      <Link
-        key={href}
-        href={href}
-        className="nav-item"
-        data-tip={label}
-        aria-current={active ? "page" : undefined}
-      >
-        <Icon size={18} strokeWidth={active ? 2.4 : 1.8} />
-      </Link>
-    );
-  });
+  const currentNav = isOwner ? ownerNav : managerNav;
 
-  const userInitials = isOwner ? "CO" : "FM";
+  const renderNavItems = (isDrawer = false) => {
+    return currentNav.map(({ href, label, icon: Icon }) => {
+      const active = path === href;
+      return (
+        <Link
+          key={href}
+          href={href}
+          className="nav-item"
+          data-tip={label}
+          aria-current={active ? "page" : undefined}
+          onClick={() => isDrawer && setMobileDrawerOpen(false)}
+          title={collapsed && !isDrawer ? label : undefined}
+        >
+          <Icon size={18} strokeWidth={active ? 2.4 : 1.8} style={{ flexShrink: 0 }} />
+          {(!collapsed || isDrawer) && (
+            <span className="nav-item-label" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+              {label}
+            </span>
+          )}
+        </Link>
+      );
+    });
+  };
 
   return (
-    <div className="shell">
+    <div className={`shell ${collapsed ? "sidebar-collapsed" : ""}`}>
       <PwaRegister />
       <NotificationListener />
 
-      {/* Minimal, Elegant Navigation Rail */}
-      <aside className="sidebar">
-        <div style={{ padding: "4px 0 12px", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "center", width: "100%" }}>
-          <Logo compact />
+      {/* Premium Collapsible Navigation Sidebar (Desktop) */}
+      <aside className={`sidebar ${collapsed ? "collapsed" : ""}`} aria-label="Main Navigation">
+        {/* Sidebar Header with Brand & Collapse Toggle */}
+        <div className="sidebar-header">
+          {collapsed ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", gap: 10 }}>
+              <Logo compact />
+              <button
+                onClick={toggleSidebar}
+                className="sidebar-toggle-btn"
+                title="Expand sidebar"
+                aria-label="Expand sidebar"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+              <Logo />
+              <button
+                onClick={toggleSidebar}
+                className="sidebar-toggle-btn"
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+              >
+                <ChevronLeft size={15} />
+              </button>
+            </div>
+          )}
         </div>
 
-        <nav className="nav-rail-group" aria-label="Main Navigation">
-          {navButtons}
+        {/* Navigation Items */}
+        <nav className="nav-rail-group" aria-label="Role Navigation">
+          {renderNavItems(false)}
         </nav>
 
         {/* Bottom Rail Utilities */}
@@ -121,48 +195,90 @@ export function AppShell({ children }: { children: ReactNode }) {
             marginTop: "auto",
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            gap: 10,
+            alignItems: collapsed ? "center" : "stretch",
+            gap: 8,
             paddingTop: 12,
             borderTop: "1px solid var(--border-subtle)",
             width: "100%",
           }}
         >
-          <Link
-            href="/settings"
+          {/* Quick Lock Button */}
+          <button
+            onClick={logout}
             className="nav-item"
-            data-tip="Settings"
-            aria-current={path === "/settings" ? "page" : undefined}
+            data-tip="Lock Terminal"
+            style={{ color: "var(--amber)", width: collapsed ? 46 : "100%" }}
+            title={collapsed ? "Lock Terminal" : undefined}
           >
-            <Settings size={18} strokeWidth={path === "/settings" ? 2.4 : 1.8} />
-          </Link>
-
-          <div
-            className="nav-item"
-            data-tip="5 Tables Active"
-            style={{ width: 36, height: 36, cursor: "default" }}
-          >
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "var(--accent-primary)",
-                display: "inline-block",
-              }}
-            />
-          </div>
+            <LogOut size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
+            {!collapsed && <span className="nav-item-label">Lock Terminal</span>}
+          </button>
         </div>
       </aside>
 
+      {/* Mobile Navigation Drawer */}
+      {mobileDrawerOpen && (
+        <div
+          className="mobile-drawer-overlay"
+          onClick={() => setMobileDrawerOpen(false)}
+        >
+          <div
+            className="mobile-drawer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid var(--border-subtle)" }}>
+              <Logo />
+              <button
+                onClick={() => setMobileDrawerOpen(false)}
+                className="btn"
+                style={{ width: 32, height: 32, padding: 0 }}
+                aria-label="Close navigation"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <nav style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+              {renderNavItems(true)}
+            </nav>
+
+            <div style={{ marginTop: "auto", paddingTop: 14, borderTop: "1px solid var(--border-subtle)" }}>
+              <button
+                onClick={() => {
+                  setMobileDrawerOpen(false);
+                  logout();
+                }}
+                className="nav-item"
+                style={{ width: "100%", color: "var(--amber)" }}
+              >
+                <LogOut size={16} />
+                <span className="nav-item-label">Lock Terminal</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Workspace */}
       <div className="main">
         {/* Simplified Top Toolbar */}
         <header className="topbar">
+          {/* Mobile Menu Hamburger */}
+          <button
+            onClick={() => setMobileDrawerOpen(true)}
+            className="btn mobile-only-btn"
+            style={{ width: 34, height: 34, padding: 0, marginRight: 8, display: "none" }}
+            aria-label="Open Navigation"
+          >
+            <Menu size={16} />
+          </button>
+
+          {/* Quick Search */}
           <div style={{ position: "relative", flex: 1, maxWidth: 380 }}>
             <label className="search">
               <Search size={14} strokeWidth={2} style={{ color: "var(--text-muted)" }} />
               <input
-                placeholder="Search tables, players, products..."
+                placeholder="Search tables, players, sessions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
@@ -194,9 +310,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <CircleDot size={13} style={{ color: "var(--accent-primary)" }} />
-                    <span>Royal Table 1</span>
+                    <span>Royal Table 1 &amp; 2</span>
                   </div>
-                  <span className="badge" data-s="available" style={{ fontSize: 10 }}>VIP · ₹500/hr</span>
+                  <span className="badge" data-s="available" style={{ fontSize: 10 }}>VIP Salon</span>
                 </Link>
                 <Link
                   href="/tables"
@@ -206,61 +322,37 @@ export function AppShell({ children }: { children: ReactNode }) {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <CircleDot size={13} style={{ color: "var(--accent-primary)" }} />
-                    <span>Snooker Table 1</span>
+                    <span>Snooker 1 &amp; 2</span>
                   </div>
-                  <span className="badge" data-s="available" style={{ fontSize: 10 }}>12ft · ₹350/hr</span>
+                  <span className="badge" data-s="available" style={{ fontSize: 10 }}>12ft Tournament</span>
                 </Link>
-                <Link
-                  href="/products"
-                  className="dropdown-item"
-                  style={{ justifyContent: "space-between" }}
-                  onMouseDown={(e) => e.preventDefault()}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Package size={13} style={{ color: "var(--text-secondary)" }} />
-                    <span>Red Bull Energy Drink</span>
-                  </div>
-                  <span style={{ fontSize: 11, color: "var(--accent-primary)", fontWeight: 600 }}>₹160</span>
-                </Link>
+                {isOwner && (
+                  <Link
+                    href="/pricing"
+                    className="dropdown-item"
+                    style={{ justifyContent: "space-between" }}
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <DollarSign size={13} style={{ color: "var(--accent-primary)" }} />
+                      <span>Table Pricing Matrix</span>
+                    </div>
+                    <span style={{ fontSize: 10, color: "var(--accent-primary)", fontWeight: 600 }}>Tariffs</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>
 
+          {/* Right Topbar Controls */}
           <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
-            {/* Understated Status Tag */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "4px 10px",
-                borderRadius: "var(--r-xs)",
-                background: "var(--bg-surface-inset)",
-                border: "1px solid var(--border-subtle)",
-                fontSize: 11.5,
-                fontWeight: 600,
-                color: "var(--text-secondary)",
-              }}
-            >
-              <span
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: "50%",
-                  background: "var(--accent-primary)",
-                  display: "inline-block",
-                }}
-              />
-              <span>5 Tables Live</span>
-            </div>
-
-            {/* Quick sync telemetry */}
+            {/* Sync telemetry button */}
             <button
               onClick={handleRefresh}
               className="btn"
               style={{ width: 34, height: 34, padding: 0 }}
-              title="Sync Floor Telemetry"
-              aria-label="Refresh"
+              title="Refresh live floor data"
+              aria-label="Refresh live data"
             >
               <RefreshCw
                 size={14}
@@ -280,7 +372,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 }}
                 className="btn"
                 style={{ width: 34, height: 34, padding: 0, position: "relative" }}
-                aria-label="Notifications"
+                aria-label="System notifications"
               >
                 <Bell size={15} style={{ color: "var(--text-secondary)" }} />
                 <span
@@ -303,7 +395,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     position: "absolute",
                     top: "calc(100% + 8px)",
                     right: 0,
-                    width: 300,
+                    width: 280,
                     padding: "14px",
                     zIndex: 60,
                   }}
@@ -319,33 +411,26 @@ export function AppShell({ children }: { children: ReactNode }) {
                     }}
                   >
                     <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
-                      System Status
+                      Live Shift Alerts
                     </span>
                     <span className="badge" style={{ fontSize: 10, padding: "2px 6px" }}>
-                      Live
+                      Active
                     </span>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
-                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 6, flexShrink: 0 }} />
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 5, flexShrink: 0 }} />
                       <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Turso Cloud Sync</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>libSQL cloud database active</div>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Real-Time Synchronization</div>
+                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Active cross-terminal session sync</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
-                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 6, flexShrink: 0 }} />
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 5, flexShrink: 0 }} />
                       <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Audio & Push Alerts</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Cue chime engine ready</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12 }}>
-                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)", marginTop: 6, flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Fleet Ready</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>5 tables available for play</div>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Audio Match Chimes</div>
+                        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Time-up sound notification active</div>
                       </div>
                     </div>
                   </div>
@@ -362,7 +447,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       style={{ all: "unset", fontSize: 11, color: "var(--accent-primary)", fontWeight: 600, cursor: "pointer" }}
                       onClick={() => setNotifOpen(false)}
                     >
-                      Dismiss alerts
+                      Dismiss
                     </button>
                   </div>
                 </div>
@@ -379,9 +464,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                   setNotifOpen(false);
                 }}
               >
-                <div className="avatar-circle">{user?.role === "owner" ? "OW" : "MG"}</div>
+                <div className="avatar-circle">{isOwner ? "OW" : "MG"}</div>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
-                  {user?.role === "owner" ? "Owner" : "Manager"}
+                  {isOwner ? "Owner" : "Manager"}
                 </span>
                 <ChevronDown size={12} style={{ color: "var(--text-muted)", marginLeft: 2 }} />
               </div>
@@ -403,14 +488,29 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{user?.username}@levelup.club</div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <Link href="/settings" className="dropdown-item" onClick={() => setProfileOpen(false)}>
-                      <Sliders size={13} />
-                      <span>Rate Settings</span>
-                    </Link>
-                    <Link href="/reports" className="dropdown-item" onClick={() => setProfileOpen(false)}>
-                      <BarChart3 size={13} />
-                      <span>Daily Shift Report</span>
-                    </Link>
+                    {isOwner ? (
+                      <>
+                        <Link href="/pricing" className="dropdown-item" onClick={() => setProfileOpen(false)}>
+                          <Sliders size={13} />
+                          <span>Rate Settings</span>
+                        </Link>
+                        <Link href="/reports" className="dropdown-item" onClick={() => setProfileOpen(false)}>
+                          <BarChart3 size={13} />
+                          <span>Daily Shift Report</span>
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/" className="dropdown-item" onClick={() => setProfileOpen(false)}>
+                          <CircleDot size={13} />
+                          <span>Live Table Floor</span>
+                        </Link>
+                        <Link href="/sessions" className="dropdown-item" onClick={() => setProfileOpen(false)}>
+                          <Clock size={13} />
+                          <span>Shift Match Logs</span>
+                        </Link>
+                      </>
+                    )}
                     <div style={{ height: 1, background: "var(--border-subtle)", margin: "4px 0" }} />
                     <button
                       className="dropdown-item"
@@ -433,8 +533,22 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="page">{children}</main>
       </div>
 
+      {/* Compact Mobile Bottom Navigation */}
       <nav className="mobile-nav" aria-label="Mobile Navigation">
-        {navButtons}
+        {currentNav.slice(0, 5).map(({ href, label, icon: Icon }) => {
+          const active = path === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className="nav-item"
+              data-tip={label}
+              aria-current={active ? "page" : undefined}
+            >
+              <Icon size={18} strokeWidth={active ? 2.4 : 1.8} />
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

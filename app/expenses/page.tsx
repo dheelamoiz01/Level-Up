@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import {
   Receipt,
   Plus,
@@ -18,6 +19,7 @@ import {
   CheckCircle2,
   X,
   FileText,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import {
@@ -259,6 +261,52 @@ export default function ExpensesPage() {
       setTimeout(() => setActionFeedback(null), 3000);
     }
   };
+
+  // Strict Owner Access Guard
+  if (!isOwner) {
+    return (
+      <div
+        className="glass-card"
+        style={{
+          padding: "48px 24px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          gap: 16,
+          maxWidth: 500,
+          margin: "60px auto",
+        }}
+      >
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            background: "rgba(239, 68, 68, 0.12)",
+            color: "var(--danger)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ShieldAlert size={24} />
+        </div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>
+          Owner Access Required
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>
+          Club operating expenses and staff salary disbursements are restricted to the Club Owner.
+        </p>
+        <Link href="/">
+          <button className="btn btn-primary" style={{ marginTop: 8 }}>
+            Return to Live Floor
+          </button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <>

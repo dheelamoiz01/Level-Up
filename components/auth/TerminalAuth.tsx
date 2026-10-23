@@ -39,16 +39,16 @@ export function TerminalAuth() {
         backgroundSize: "cover",
         backgroundPosition: "center center",
         backgroundRepeat: "no-repeat",
-        backgroundColor: "#030806",
+        backgroundColor: "#111315",
       }}
     >
-      {/* Dark Overlay & Atmospheric Vignette for perfect text readability while keeping snooker scene visible */}
+      {/* Dark Overlay & Atmospheric Vignette */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(circle at center, rgba(3, 8, 6, 0.72) 0%, rgba(3, 8, 6, 0.88) 100%)",
+            "radial-gradient(circle at center, rgba(17, 19, 21, 0.72) 0%, rgba(17, 19, 21, 0.9) 100%)",
           pointerEvents: "none",
         }}
       />
@@ -57,7 +57,7 @@ export function TerminalAuth() {
           position: "absolute",
           inset: 0,
           background:
-            "linear-gradient(180deg, rgba(3, 8, 6, 0.5) 0%, rgba(3, 8, 6, 0.85) 100%)",
+            "linear-gradient(180deg, rgba(17, 19, 21, 0.5) 0%, rgba(17, 19, 21, 0.88) 100%)",
           pointerEvents: "none",
         }}
       />
@@ -73,7 +73,7 @@ export function TerminalAuth() {
           zIndex: 2,
         }}
       >
-        {/* Premium LEVEL UP Branding above the login card */}
+        {/* Premium LEVEL UP Branding */}
         <div
           style={{
             display: "flex",
@@ -90,26 +90,37 @@ export function TerminalAuth() {
               fontSize: 26,
               fontWeight: 800,
               letterSpacing: "0.12em",
-              color: "#ECF5F0",
+              color: "#F3F4F6",
               lineHeight: 1,
               textAlign: "center",
             }}
           >
             LEVEL <span style={{ color: "var(--accent-primary)" }}>UP</span>
           </h1>
+          <span
+            style={{
+              fontSize: 11,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--text-muted)",
+              fontWeight: 600,
+            }}
+          >
+            Snooker &amp; Pool Club
+          </span>
         </div>
 
-        {/* Refined Translucent Login Card */}
+        {/* Refined Translucent Charcoal Login Card */}
         <div
           style={{
             width: "100%",
-            background: "rgba(7, 19, 14, 0.82)",
+            background: "rgba(24, 27, 30, 0.88)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
-            border: "1px solid rgba(21, 56, 42, 0.85)",
+            border: "1px solid var(--border-default)",
             borderRadius: "var(--r-lg)",
             padding: "32px 28px",
-            boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(0, 199, 138, 0.08)",
+            boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.85)",
             display: "flex",
             flexDirection: "column",
           }}
@@ -151,7 +162,7 @@ export function TerminalAuth() {
                   fontWeight: 600,
                   letterSpacing: "0.06em",
                   textTransform: "uppercase",
-                  color: "#8CA89A",
+                  color: "var(--text-secondary)",
                 }}
               >
                 Username
@@ -161,15 +172,15 @@ export function TerminalAuth() {
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  background: "rgba(4, 11, 8, 0.85)",
-                  border: "1px solid rgba(21, 56, 42, 0.9)",
+                  background: "var(--bg-surface-inset)",
+                  border: "1px solid var(--border-default)",
                   borderRadius: "var(--r-sm)",
                   padding: "0 12px",
                   height: 42,
                   transition: "border-color 0.15s ease",
                 }}
               >
-                <User size={15} style={{ color: "#506B5E", flexShrink: 0 }} />
+                <User size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                 <input
                   type="text"
                   value={username}
@@ -200,7 +211,7 @@ export function TerminalAuth() {
                   fontWeight: 600,
                   letterSpacing: "0.06em",
                   textTransform: "uppercase",
-                  color: "#8CA89A",
+                  color: "var(--text-secondary)",
                 }}
               >
                 Password
@@ -210,15 +221,15 @@ export function TerminalAuth() {
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  background: "rgba(4, 11, 8, 0.85)",
-                  border: "1px solid rgba(21, 56, 42, 0.9)",
+                  background: "var(--bg-surface-inset)",
+                  border: "1px solid var(--border-default)",
                   borderRadius: "var(--r-sm)",
                   padding: "0 12px",
                   height: 42,
                   transition: "border-color 0.15s ease",
                 }}
               >
-                <Lock size={15} style={{ color: "#506B5E", flexShrink: 0 }} />
+                <Lock size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
@@ -239,46 +250,39 @@ export function TerminalAuth() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
                   style={{
                     background: "transparent",
                     border: "none",
+                    color: "var(--text-muted)",
                     cursor: "pointer",
-                    color: "#8CA89A",
                     padding: 4,
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: "center",
                   }}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
-            {/* Submit Action */}
+            {/* Sign In Button */}
             <button
               type="submit"
               disabled={loading}
+              className="btn btn-primary"
               style={{
-                marginTop: 6,
+                width: "100%",
                 height: 42,
-                background: "var(--accent-primary)",
-                color: "#030806",
-                border: "none",
-                borderRadius: "var(--r-sm)",
                 fontSize: 13,
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                fontWeight: 600,
+                marginTop: 6,
                 gap: 8,
-                transition: "opacity 0.15s ease, background 0.15s ease",
               }}
             >
-              <span>Sign In</span>
-              <ArrowRight size={15} strokeWidth={2.5} />
+              <span>{loading ? "Signing in..." : "Sign In to Terminal"}</span>
+              <ArrowRight size={15} />
             </button>
           </form>
         </div>

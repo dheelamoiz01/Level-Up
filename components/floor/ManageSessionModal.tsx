@@ -34,16 +34,16 @@ import {
 
 interface ManageSessionModalProps {
   table: ClubTable | null;
-  products: Product[];
-  pricingList: TablePricing[];
+  products?: Product[];
+  pricingList?: TablePricing[];
   onClose: () => void;
   onSessionUpdated: () => void;
 }
 
 export function ManageSessionModal({
   table,
-  products,
-  pricingList,
+  products = [],
+  pricingList = [],
   onClose,
   onSessionUpdated,
 }: ManageSessionModalProps) {
