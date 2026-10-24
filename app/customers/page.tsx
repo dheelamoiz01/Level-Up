@@ -17,8 +17,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { getLiveSessions, settleCustomerUdhar } from "@/lib/turso/service";
+import { getLiveSessions, settleCustomerUdhar, deleteCustomerRecord } from "@/lib/turso/service";
 import type { SessionRow } from "@/lib/types";
+import { Trash2 } from "lucide-react";
 
 interface CustomerAggregate {
   name: string;
@@ -46,6 +47,24 @@ export default function CustomersPage() {
   const [isSubmittingUdhar, setIsSubmittingUdhar] = useState(false);
   const [udharSuccessFeedback, setUdharSuccessFeedback] = useState<string | null>(null);
   const [udharErrorMsg, setUdharErrorMsg] = useState<string | null>(null);
+  const [deletingCustomerName, setDeletingCustomerName] = useState<string | null>(null);
+
+  const handleDeleteCustomer = async (c: CustomerAggregate) => {
+    if (!confirm(`Are you sure you want to completely delete customer "${c.name}" and all their match records?`)) return;
+    setDeletingCustomerName(c.name);
+    const res = await deleteCustomerRecord({
+      customerName: c.name,
+      customerPhone: c.phone || undefined,
+      managerName: user?.username || "manager",
+    });
+    setDeletingCustomerName(null);
+    if (res.success) {
+      setSelectedCustomer(null);
+      await loadData();
+    } else {
+      alert("Failed to delete customer: " + (res.error || "Unknown error"));
+    }
+  };
 
   const handleConfirmCollectUdhar = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -107,7 +126,7 @@ export default function CustomersPage() {
   const customerList = useMemo(() => {
     const map = new Map<string, CustomerAggregate>();
 
-    sessions.forEach((s) => {
+    sessions.filter((s) => s.status !== "voided").forEach((s) => {
       const key = (s.player || "Walk-in").trim();
       const existing = map.get(key) || {
         name: key,
@@ -330,6 +349,27 @@ export default function CustomersPage() {
                         >
                           History
                         </button>
+                        <button
+                          type="button"
+                          disabled={deletingCustomerName === c.name}
+                          onClick={() => handleDeleteCustomer(c)}
+                          className="btn"
+                          title="Delete Customer & Matches"
+                          style={{
+                            height: 28,
+                            fontSize: 11,
+                            padding: "0 8px",
+                            color: "var(--danger)",
+                            borderColor: "rgba(239, 68, 68, 0.35)",
+                            background: "rgba(239, 68, 68, 0.08)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Trash2 size={12} />
+                          <span>{deletingCustomerName === c.name ? "..." : "Delete"}</span>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -477,13 +517,31 @@ export default function CustomersPage() {
               </button>
             )}
 
-            <button
-              onClick={() => setSelectedCustomer(null)}
-              className="btn"
-              style={{ width: "100%", height: 36 }}
-            >
-              Close History
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => handleDeleteCustomer(selectedCustomer)}
+                className="btn"
+                style={{
+                  flex: 1,
+                  height: 36,
+                  color: "var(--danger)",
+                  borderColor: "rgba(239, 68, 68, 0.4)",
+                  background: "rgba(239, 68, 68, 0.08)",
+                  gap: 4,
+                }}
+              >
+                <Trash2 size={13} />
+                <span>Delete Customer</span>
+              </button>
+              <button
+                onClick={() => setSelectedCustomer(null)}
+                className="btn"
+                style={{ flex: 1, height: 36 }}
+              >
+                Close History
+              </button>
+            </div>
           </div>
         </div>
       )}

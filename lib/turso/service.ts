@@ -171,7 +171,7 @@ export async function getLiveSessions(limit: number = 50): Promise<SessionRow[]>
   try {
     const client = getTursoClient();
     const result = await client.execute({
-      sql: "SELECT * FROM sessions ORDER BY started_at DESC LIMIT ?",
+      sql: "SELECT * FROM sessions WHERE status != 'voided' ORDER BY started_at DESC LIMIT ?",
       args: [limit],
     });
 
@@ -1531,27 +1531,18 @@ export async function voidOrDeleteSession(params: {
       args: [params.tableId],
     });
 
-    // 2. Mark session as voided in sessions table (using discount_reason for void memo)
+    // 2. Permanently remove session items and session record
     try {
       await client.execute({
-        sql: `UPDATE sessions
-              SET status = 'voided',
-                  ended_at = datetime('now'),
-                  discount_reason = 'VOIDED by ' || ? || ': ' || ?,
-                  updated_at = datetime('now')
-              WHERE id = ?`,
-        args: [
-          params.managerName || "manager",
-          params.reason || "Session deleted by floor operator",
-          params.sessionId,
-        ],
-      });
-    } catch (sessionErr) {
-      console.warn("Session void update fallback:", sessionErr);
-      await client.execute({
-        sql: `UPDATE sessions SET status = 'voided', ended_at = datetime('now') WHERE id = ?`,
+        sql: "DELETE FROM session_items WHERE session_id = ?",
         args: [params.sessionId],
       });
+      await client.execute({
+        sql: "DELETE FROM sessions WHERE id = ?",
+        args: [params.sessionId],
+      });
+    } catch (sessionErr) {
+      console.warn("Session delete fallback:", sessionErr);
     }
 
     // 3. Insert critical audit trail log for Owner oversight
@@ -1606,6 +1597,74 @@ export async function voidOrDeleteSession(params: {
     return { success: true };
   } catch (err) {
     console.error("Failed to void session:", err);
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 22b. Delete Customer Record and all associated match entries */
+export async function deleteCustomerRecord(params: {
+  customerName: string;
+  customerPhone?: string;
+  managerName?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = getTursoClient();
+
+    // 1. Find all sessions for this customer name or phone
+    const qPhone = params.customerPhone && params.customerPhone.trim() !== "null" ? params.customerPhone.trim() : null;
+    const res = await client.execute({
+      sql: `SELECT id, table_id FROM sessions 
+            WHERE customer_name = ? 
+               OR (customer_phone IS NOT NULL AND customer_phone != '' AND customer_phone = ?)`,
+      args: [params.customerName.trim(), qPhone || "NO_MATCH_PHONE"],
+    });
+
+    for (const r of res.rows as any[]) {
+      const sId = String(r.id);
+      const tId = String(r.table_id);
+
+      await client.execute({ sql: "DELETE FROM session_items WHERE session_id = ?", args: [sId] });
+      await client.execute({ sql: "DELETE FROM sessions WHERE id = ?", args: [sId] });
+
+      // Free table if this session was active
+      await client.execute({
+        sql: `UPDATE club_tables 
+              SET status = 'available', current_player = NULL, current_phone = NULL,
+                  session_started_at = NULL, scheduled_end_at = NULL, duration_choice = NULL,
+                  current_session_id = NULL, updated_at = datetime('now')
+              WHERE current_session_id = ?`,
+        args: [sId],
+      });
+    }
+
+    // Record audit
+    await client.execute({
+      sql: `INSERT INTO audit_logs (id, action, role, details) VALUES (?, ?, ?, ?)`,
+      args: [
+        `audit_del_cust_${Date.now()}`,
+        "DELETE_CUSTOMER",
+        "staff",
+        JSON.stringify({
+          customer: params.customerName,
+          phone: params.customerPhone,
+          deletedBy: params.managerName || "manager",
+          timestamp: new Date().toISOString(),
+        }),
+      ],
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("levelup_floor_update"));
+      try {
+        const bc = new BroadcastChannel("levelup_floor_sync");
+        bc.postMessage({ type: "floor_update", action: "delete_customer" });
+        bc.close();
+      } catch (e) {}
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to delete customer:", err);
     return { success: false, error: String(err) };
   }
 }

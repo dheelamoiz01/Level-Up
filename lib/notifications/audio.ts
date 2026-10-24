@@ -113,6 +113,30 @@ export function playChime(variant: "session_start" | "session_end" | "alert" | "
   }
 }
 
+let alarmIntervalId: NodeJS.Timeout | null = null;
+
+/**
+ * Start continuous looping ringing alarm on manager phone.
+ * Rings every 1.8 seconds with phone vibration until explicitly stopped.
+ */
+export function startContinuousAlarm() {
+  stopContinuousAlarm();
+  playTimerRingingSound();
+  alarmIntervalId = setInterval(() => {
+    playTimerRingingSound();
+  }, 1800);
+}
+
+/**
+ * Stop continuous ringing alarm immediately (e.g. when manager taps OK)
+ */
+export function stopContinuousAlarm() {
+  if (alarmIntervalId) {
+    clearInterval(alarmIntervalId);
+    alarmIntervalId = null;
+  }
+}
+
 /**
  * Loud, rhythmic ringing alarm for manager's phone when ANY session expires (Time Up).
  * Produces a crisp 4-pulse bell ring sequence with vibration.

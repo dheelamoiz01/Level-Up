@@ -20,6 +20,7 @@ import {
   Phone,
   RefreshCw,
   ArrowUpRight,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import {
@@ -30,6 +31,7 @@ import {
   getTablePricing,
   formatDurationFromStart,
   calculateAccruedBill,
+  voidOrDeleteSession,
 } from "@/lib/turso/service";
 import type {
   BusinessKPIs,
@@ -584,12 +586,13 @@ export default function DashboardPage() {
                 <th style={{ textAlign: "left", padding: "10px 16px", fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Payment</th>
                 <th style={{ textAlign: "left", padding: "10px 16px", fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Manager</th>
                 <th style={{ textAlign: "center", padding: "10px 16px", fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Status</th>
+                <th style={{ textAlign: "right", padding: "10px 16px", fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredCustomerEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ padding: "36px 16px", textAlign: "center", color: "var(--text-muted)" }}>
+                  <td colSpan={10} style={{ padding: "36px 16px", textAlign: "center", color: "var(--text-muted)" }}>
                     <div style={{ fontWeight: 600, color: "var(--text-secondary)", fontSize: 13 }}>No matching customer entries</div>
                     <div style={{ fontSize: 11.5, marginTop: 4 }}>
                       Entries created by floor managers will appear here automatically.
@@ -692,6 +695,41 @@ export default function DashboardPage() {
                             Completed
                           </span>
                         )}
+                      </td>
+
+                      {/* Action */}
+                      <td style={{ padding: "11px 16px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm(`Delete entry for "${s.player}"? This will update revenue and customer totals.`)) return;
+                            await voidOrDeleteSession({
+                              sessionId: s.id,
+                              tableId: s.table_id,
+                              tableName: s.table,
+                              playerName: s.player,
+                              managerName: user?.username || "owner",
+                              reason: "Deleted from Owner Dashboard",
+                            });
+                            loadDashboardData();
+                          }}
+                          className="btn"
+                          title="Delete Entry"
+                          style={{
+                            height: 26,
+                            fontSize: 11,
+                            padding: "0 8px",
+                            color: "var(--danger)",
+                            borderColor: "rgba(239, 68, 68, 0.35)",
+                            background: "rgba(239, 68, 68, 0.08)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <Trash2 size={11} />
+                          <span>Delete</span>
+                        </button>
                       </td>
                     </tr>
                   );

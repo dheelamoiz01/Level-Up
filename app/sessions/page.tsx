@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { getLiveSessions, getLiveTables } from "@/lib/turso/service";
+import { getLiveSessions, getLiveTables, voidOrDeleteSession } from "@/lib/turso/service";
 import type { SessionRow, ClubTable } from "@/lib/types";
 import { ManageSessionModal } from "@/components/floor/ManageSessionModal";
+import { Trash2 } from "lucide-react";
 
 export default function SessionsPage() {
   const { user, isOwner } = useAuth();
@@ -33,6 +34,22 @@ export default function SessionsPage() {
 
   // Selected session to manage
   const [selectedTableToManage, setSelectedTableToManage] = useState<ClubTable | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteSession = async (s: SessionRow) => {
+    if (!confirm(`Are you sure you want to permanently delete session for "${s.player}" on ${s.table}? This will remove it from all ledgers.`)) return;
+    setDeletingId(s.id);
+    await voidOrDeleteSession({
+      sessionId: s.id,
+      tableId: s.table_id,
+      tableName: s.table,
+      playerName: s.player,
+      managerName: user?.username || "manager",
+      reason: "Deleted from Shift Sessions log by manager",
+    });
+    setDeletingId(null);
+    loadData();
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -252,20 +269,41 @@ export default function SessionsPage() {
                         {s.created_by || "manager"}
                       </td>
                       <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                        {isActive ? (
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
+                          {isActive && (
+                            <button
+                              onClick={() => {
+                                const tbl = tables.find((t) => t.id === s.table_id || t.name === s.table);
+                                if (tbl) setSelectedTableToManage(tbl);
+                              }}
+                              className="btn btn-primary"
+                              style={{ height: 28, fontSize: 11, padding: "0 10px" }}
+                            >
+                              Manage
+                            </button>
+                          )}
                           <button
-                            onClick={() => {
-                              const tbl = tables.find((t) => t.id === s.table_id || t.name === s.table);
-                              if (tbl) setSelectedTableToManage(tbl);
+                            type="button"
+                            disabled={deletingId === s.id}
+                            onClick={() => handleDeleteSession(s)}
+                            className="btn"
+                            title="Delete Session"
+                            style={{
+                              height: 28,
+                              fontSize: 11,
+                              padding: "0 8px",
+                              color: "var(--danger)",
+                              borderColor: "rgba(239, 68, 68, 0.35)",
+                              background: "rgba(239, 68, 68, 0.08)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
                             }}
-                            className="btn btn-primary"
-                            style={{ height: 28, fontSize: 11, padding: "0 10px" }}
                           >
-                            Manage
+                            <Trash2 size={12} />
+                            <span>{deletingId === s.id ? "..." : "Delete"}</span>
                           </button>
-                        ) : (
-                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Closed</span>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   );

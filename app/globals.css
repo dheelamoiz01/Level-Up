@@ -606,15 +606,57 @@ h1, h2, h3, h4, h5, h6 {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 260px;
-  background: var(--bg-surface);
+  width: min(285px, 80vw);
+  background: var(--bg-surface-raised);
   border-right: 1px solid var(--border-default);
-  padding: 20px 16px;
+  padding: 22px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
   animation: slideInLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobile-drawer .nav-item {
+  width: 100% !important;
+  height: 46px !important;
+  padding: 0 14px !important;
+  gap: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  border-radius: var(--r-sm) !important;
+  color: var(--text-secondary) !important;
+  text-decoration: none !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  margin-bottom: 2px !important;
+  transition: all 0.15s ease !important;
+}
+
+.mobile-drawer .nav-item svg {
+  flex-shrink: 0 !important;
+  color: var(--text-muted) !important;
+}
+
+.mobile-drawer .nav-item:active {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.mobile-drawer .nav-item[aria-current="page"] {
+  background: rgba(16, 185, 129, 0.14) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #FFFFFF !important;
+}
+
+.mobile-drawer .nav-item[aria-current="page"] svg {
+  color: var(--accent-primary) !important;
+}
+
+.mobile-drawer .nav-item-label {
+  display: inline-block !important;
+  letter-spacing: -0.01em !important;
 }
 
 @keyframes slideInLeft {
