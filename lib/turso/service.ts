@@ -1042,7 +1042,9 @@ export async function startFloorSession(params: {
 
     const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const nowIso = new Date().toISOString();
-    const durationMins = params.durationChoice === "30m" ? 30 : 60;
+    // For Pool table testing, 30m option is set to 2 minutes
+    const isPool = params.tableKind === "Pool" || params.tableId.toLowerCase().includes("pool");
+    const durationMins = params.durationChoice === "1h" ? 60 : (isPool ? 2 : 30);
     const scheduledEndIso = new Date(Date.now() + durationMins * 60000).toISOString();
 
     // 2. Insert Session with Rate Snapshot and Scheduled End
@@ -1175,7 +1177,8 @@ export async function extendFloorSession(params: {
       return { success: false, error: "No active session found to extend." };
     }
 
-    const extMins = params.extensionChoice === "30m" ? 30 : 60;
+    const isPool = String(sess.table_kind || params.tableId).toLowerCase().includes("pool");
+    const extMins = params.extensionChoice === "1h" ? 60 : (isPool ? 2 : 30);
     const currentEndMs = sess.scheduled_end_at ? new Date(sess.scheduled_end_at).getTime() : Date.now();
     // If time was already up, extend from now; otherwise extend from scheduled end
     const baseMs = Math.max(Date.now(), currentEndMs);

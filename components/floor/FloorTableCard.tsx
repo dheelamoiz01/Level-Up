@@ -90,7 +90,7 @@ export function FloorTableCard({
   ];
 
   // Booked duration calculation
-  const totalDurationMins = table.duration_choice === "1h" ? 60 : 30;
+  const totalDurationMins = table.duration_choice === "1h" ? 60 : (table.kind === "Pool" ? 2 : 30);
   const totalDurationSec = totalDurationMins * 60;
   const progressPct = isPlaying
     ? Math.min(100, Math.max(0, ((totalDurationSec - remainingSec) / totalDurationSec) * 100))
@@ -141,7 +141,7 @@ export function FloorTableCard({
 
             {/* 2. Rates beneath title */}
             <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4, fontFamily: "var(--font-mono)" }}>
-              ₹{rate30m}/30m · ₹{rate60m}/1h
+              ₹{rate30m}/{table.kind === "Pool" ? "2m" : "30m"} · ₹{rate60m}/1h
             </div>
           </div>
 

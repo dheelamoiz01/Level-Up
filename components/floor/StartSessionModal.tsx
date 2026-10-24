@@ -294,14 +294,16 @@ export function StartSessionModal({
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>30 Minutes</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+                    {table.kind === "Pool" ? "2 Minutes" : "30 Minutes"}
+                  </span>
                   {durationChoice === "30m" && <CheckCircle2 size={16} color="var(--accent-primary)" />}
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: "var(--accent-primary)", fontFamily: "var(--font-mono)" }}>
                   ₹{pricing.rate_30m}
                 </div>
                 <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 2 }}>
-                  Quick match tariff
+                  {table.kind === "Pool" ? "2 mins quick session" : "Quick match tariff"}
                 </div>
               </button>
 

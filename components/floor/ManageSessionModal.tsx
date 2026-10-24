@@ -897,8 +897,12 @@ export function ManageSessionModal({
                 className="table-card-hover"
               >
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>+30 Minutes</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>Add half hour frame</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+                    +{table.kind === "Pool" ? "2 Minutes" : "30 Minutes"}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                    {table.kind === "Pool" ? "Add 2 mins quick frame" : "Add half hour frame"}
+                  </div>
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: "var(--accent-primary)", fontFamily: "var(--font-mono)", marginTop: 12 }}>
                   ₹{pricing.rate_30m}
