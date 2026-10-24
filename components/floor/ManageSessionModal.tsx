@@ -267,6 +267,7 @@ export function ManageSessionModal({
 
   return (
     <div
+      className="modal-overlay"
       style={{
         position: "fixed",
         inset: 0,
@@ -281,7 +282,7 @@ export function ManageSessionModal({
       onClick={onClose}
     >
       <div
-        className="glass-card"
+        className="glass-card modal-sheet"
         style={{
           width: "100%",
           maxWidth: 580,

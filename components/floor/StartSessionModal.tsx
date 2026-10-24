@@ -106,6 +106,7 @@ export function StartSessionModal({
 
   return (
     <div
+      className="modal-overlay"
       style={{
         position: "fixed",
         inset: 0,
@@ -120,7 +121,7 @@ export function StartSessionModal({
       onClick={onClose}
     >
       <div
-        className="glass-card"
+        className="glass-card modal-sheet"
         style={{
           width: "100%",
           maxWidth: 480,
@@ -129,7 +130,6 @@ export function StartSessionModal({
           background: "var(--bg-surface-raised)",
           border: "1px solid var(--border-default)",
           borderRadius: "var(--r-md)",
-          padding: 24,
           boxShadow: "0 24px 48px rgba(0, 0, 0, 0.8)",
         }}
         onClick={(e) => e.stopPropagation()}

@@ -23,11 +23,16 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { Logo } from "@/components/ui/Logo";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
-import { NotificationListener } from "@/components/realtime/NotificationListener";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { TerminalAuth } from "@/components/auth/TerminalAuth";
+
+const NotificationListener = dynamic(
+  () => import("@/components/realtime/NotificationListener").then((mod) => mod.NotificationListener),
+  { ssr: false }
+);
 
 // Owner Navigation (Clean 7 items)
 const ownerNav = [
@@ -533,22 +538,76 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="page">{children}</main>
       </div>
 
-      {/* Compact Mobile Bottom Navigation */}
+      {/* Ergonomic Mobile Bottom Navigation Dock (Native App Style) */}
       <nav className="mobile-nav" aria-label="Mobile Navigation">
-        {currentNav.slice(0, 5).map(({ href, label, icon: Icon }) => {
-          const active = path === href;
-          return (
+        {isOwner ? (
+          <>
             <Link
-              key={href}
-              href={href}
-              className="nav-item"
-              data-tip={label}
-              aria-current={active ? "page" : undefined}
+              href="/"
+              className={`mobile-nav-item ${path === "/" ? "active" : ""}`}
+              aria-current={path === "/" ? "page" : undefined}
             >
-              <Icon size={18} strokeWidth={active ? 2.4 : 1.8} />
+              <LayoutDashboard size={20} strokeWidth={path === "/" ? 2.4 : 1.8} />
+              <span className="mobile-nav-label">Dashboard</span>
             </Link>
-          );
-        })}
+            <Link
+              href="/tables"
+              className={`mobile-nav-item ${path === "/tables" ? "active" : ""}`}
+              aria-current={path === "/tables" ? "page" : undefined}
+            >
+              <CircleDot size={20} strokeWidth={path === "/tables" ? 2.4 : 1.8} />
+              <span className="mobile-nav-label">Tables</span>
+            </Link>
+            <Link
+              href="/pricing"
+              className={`mobile-nav-item ${path === "/pricing" ? "active" : ""}`}
+              aria-current={path === "/pricing" ? "page" : undefined}
+            >
+              <DollarSign size={20} strokeWidth={path === "/pricing" ? 2.4 : 1.8} />
+              <span className="mobile-nav-label">Rates</span>
+            </Link>
+            <Link
+              href="/expenses"
+              className={`mobile-nav-item ${path === "/expenses" ? "active" : ""}`}
+              aria-current={path === "/expenses" ? "page" : undefined}
+            >
+              <Receipt size={20} strokeWidth={path === "/expenses" ? 2.4 : 1.8} />
+              <span className="mobile-nav-label">Expenses</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileDrawerOpen(true)}
+              className="mobile-nav-item"
+              aria-label="Open Full Navigation Menu"
+            >
+              <Menu size={20} strokeWidth={1.8} />
+              <span className="mobile-nav-label">More</span>
+            </button>
+          </>
+        ) : (
+          managerNav.map(({ href, label, icon: Icon }) => {
+            const active = path === href;
+            // Short labels for tight phone screens
+            const shortLabel =
+              label === "Live Tables"
+                ? "Tables"
+                : label === "Table Pricing"
+                ? "Rates"
+                : label;
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`mobile-nav-item ${active ? "active" : ""}`}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon size={20} strokeWidth={active ? 2.4 : 1.8} />
+                <span className="mobile-nav-label">{shortLabel}</span>
+              </Link>
+            );
+          })
+        )}
       </nav>
     </div>
   );

@@ -108,12 +108,10 @@ export function FloorTableCard({
           : "table-available"
       }`}
       style={{
-        padding: "18px 20px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         height: "100%",
-        minHeight: 390,
       }}
     >
       {/* 1. Header Row: Table Name & Category on Left, Status Badge on Right */}
@@ -470,7 +468,7 @@ export function FloorTableCard({
                 <span>Ready for Play</span>
               </div>
               <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                Sanitized &amp; brushed · 30m or 1h slots
+                30m or 1h slots available
               </div>
             </div>
           )}

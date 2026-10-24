@@ -491,6 +491,7 @@ export default function CustomersPage() {
       {/* Collect Udhar Modal */}
       {collectUdharCustomer && (
         <div
+          className="modal-overlay"
           style={{
             position: "fixed",
             inset: 0,
@@ -507,7 +508,7 @@ export default function CustomersPage() {
           }}
         >
           <div
-            className="glass-card"
+            className="glass-card modal-sheet"
             style={{
               width: "100%",
               maxWidth: 440,
