@@ -167,7 +167,8 @@ export function NotificationListener() {
     };
 
     checkLiveTursoEvents();
-    const interval = setInterval(checkLiveTursoEvents, 2500);
+    // Ultra-fast 1.2s poll for instantaneous cross-phone reaction
+    const interval = setInterval(checkLiveTursoEvents, 1200);
 
     return () => {
       isCancelled = true;
