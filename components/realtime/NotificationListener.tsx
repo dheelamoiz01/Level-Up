@@ -9,7 +9,33 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { getTursoClient } from "@/lib/turso/client";
 import type { FloorNotification } from "@/lib/types";
 
+// Module-level deduplication cache
 const notifiedEventIds = new Set<string>();
+
+// Read alerted session IDs from sessionStorage to persist across tab sleep/wakeups
+const getStoredAlertedIds = (): Set<string> => {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = sessionStorage.getItem("levelup_alerted_session_starts");
+    if (raw) {
+      return new Set(JSON.parse(raw));
+    }
+  } catch {}
+  return new Set();
+};
+
+const saveAlertedId = (id: string) => {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = sessionStorage.getItem("levelup_alerted_session_starts");
+    const arr: string[] = raw ? JSON.parse(raw) : [];
+    if (!arr.includes(id)) {
+      arr.push(id);
+      if (arr.length > 100) arr.shift();
+      sessionStorage.setItem("levelup_alerted_session_starts", JSON.stringify(arr));
+    }
+  } catch {}
+};
 
 export function NotificationListener() {
   const router = useRouter();
@@ -27,12 +53,14 @@ export function NotificationListener() {
   } | null>(null);
 
   // Cross-device tracking refs
-  const initialLoadDoneRef = useRef(false);
-  const seenSessionIdsRef = useRef<Set<string>>(new Set());
+  const alertedSessionIdsRef = useRef<Set<string>>(getStoredAlertedIds());
   const rungTimeUpSessionIdsRef = useRef<Set<string>>(new Set());
+  const locallyStartedSessionIdsRef = useRef<Set<string>>(new Set());
+  const initialMountTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
     setMounted(true);
+    initialMountTimeRef.current = Date.now();
     return () => {
       stopContinuousAlarm();
     };
@@ -63,7 +91,7 @@ export function NotificationListener() {
     // 2. Mobile vibration
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       try {
-        navigator.vibrate(isTimeUpRinging ? [400, 150, 400, 150, 600] : [200, 100, 200, 100, 300]);
+        navigator.vibrate(isTimeUpRinging ? [400, 150, 400, 150, 600] : [250, 100, 250, 100, 300]);
       } catch {}
     }
 
@@ -75,14 +103,14 @@ export function NotificationListener() {
       url: notif.table_id ? `/tables?focus=${notif.table_id}` : "/tables",
     });
 
-    // 4. Show in-app integrated toast
+    // 4. Show in-app integrated toast (8s duration)
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setActiveToast(notif);
     toastTimeoutRef.current = setTimeout(() => {
       setActiveToast(null);
-    }, 6000);
+    }, 8000);
 
-    // 5. Notify open windows to refresh telemetry
+    // 5. Notify open windows to refresh floor telemetry immediately
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("levelup_floor_update", { detail: notif }));
     }
@@ -93,7 +121,7 @@ export function NotificationListener() {
     if (!mounted) return;
     let isCancelled = false;
 
-    // Request notification permission on first user tap
+    // Request notification permission on first user tap/touch
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
       const askPerm = () => {
         Notification.requestPermission().catch(() => {});
@@ -119,20 +147,7 @@ export function NotificationListener() {
 
         if (isCancelled) return;
 
-        const activeSessions = res.rows as any[];
-
-        if (!initialLoadDoneRef.current) {
-          // First load: seed seen IDs so we don't spam retroactively
-          activeSessions.forEach((s) => {
-            seenSessionIdsRef.current.add(String(s.id));
-            if (s.scheduled_end_at && new Date(s.scheduled_end_at).getTime() <= Date.now()) {
-              rungTimeUpSessionIdsRef.current.add(String(s.id));
-            }
-          });
-          initialLoadDoneRef.current = true;
-          return;
-        }
-
+        const activeSessions = (res.rows || []) as any[];
         const nowMs = Date.now();
 
         for (const s of activeSessions) {
@@ -142,70 +157,93 @@ export function NotificationListener() {
           const duration = String(s.duration_choice || "30m");
           const amount = Number(s.table_amount || 0);
           const manager = String(s.created_by || "manager");
+          const startedAtMs = s.started_at ? new Date(String(s.started_at)).getTime() : nowMs;
+          const ageMs = nowMs - startedAtMs;
 
-          // 1. New Session started on another device -> Notify Owner's phone!
-          if (!seenSessionIdsRef.current.has(sessId)) {
-            seenSessionIdsRef.current.add(sessId);
+          // 1. MATCH STARTED DETECTION:
+          // Alert Owner app if this session hasn't been alerted yet on this device
+          if (!alertedSessionIdsRef.current.has(sessId)) {
+            // If the session was started more than 3 minutes ago before opening the app,
+            // mark it silently without playing stale alerts
+            if (ageMs > 180000) {
+              alertedSessionIdsRef.current.add(sessId);
+              saveAlertedId(sessId);
+            } else {
+              // Recent session (< 3 minutes old or freshly started)!
+              alertedSessionIdsRef.current.add(sessId);
+              saveAlertedId(sessId);
 
-            if (isOwner) {
-              triggerFloorAlert({
-                id: `cross-dev-start-${sessId}`,
-                title: `🟢 Match Started: ${tableName}`,
-                body: `Match for "${customerName}" (${duration} · ₹${amount}) started by ${manager}.`,
-                table_id: String(s.table_id),
-                table_name: tableName,
-                type: "session_start",
-                timestamp: Date.now(),
-                read: false,
-              });
+              // Don't chime the manager device that clicked Start Match locally
+              const isLocalInitiator = locallyStartedSessionIdsRef.current.has(sessId);
+              const isOwnerTarget = isOwner || user?.role === "owner" || user?.username === "owner" || !isLocalInitiator;
+
+              if (isOwnerTarget && !isLocalInitiator) {
+                triggerFloorAlert({
+                  id: `start-alert-${sessId}`,
+                  title: `🟢 Match Started: ${tableName}`,
+                  body: `Player: ${customerName} · ${duration} (₹${amount}) · Started by ${manager}`,
+                  table_id: String(s.table_id),
+                  table_name: tableName,
+                  type: "session_start",
+                  timestamp: Date.now(),
+                  read: false,
+                });
+              }
             }
           }
 
-          // 2. Session Ended / Time Up -> Ringing alarm + Pop-up Modal on Manager's phone!
+          // 2. TIME-UP / SESSION EXPIRED ALARM:
           if (s.scheduled_end_at) {
-            const endMs = new Date(s.scheduled_end_at).getTime();
+            const endMs = new Date(String(s.scheduled_end_at)).getTime();
+            const timeSinceEndMs = nowMs - endMs;
+
             if (nowMs >= endMs && !rungTimeUpSessionIdsRef.current.has(sessId)) {
-              rungTimeUpSessionIdsRef.current.add(sessId);
+              // If expired more than 5 minutes ago before load, silently track it
+              if (timeSinceEndMs > 300000) {
+                rungTimeUpSessionIdsRef.current.add(sessId);
+              } else {
+                rungTimeUpSessionIdsRef.current.add(sessId);
 
-              // Start continuous ringing alarm and pop up modal with OK button
-              startContinuousAlarm();
-              setTimeUpAlarm({
-                id: sessId,
-                tableName,
-                customerName,
-                tableId: String(s.table_id),
-              });
+                // Start continuous ringing alarm and pop up modal with OK button
+                startContinuousAlarm();
+                setTimeUpAlarm({
+                  id: sessId,
+                  tableName,
+                  customerName,
+                  tableId: String(s.table_id),
+                });
 
-              triggerFloorAlert(
-                {
-                  id: `time-up-alarm-${sessId}`,
-                  title: `⏰ TIME UP: ${tableName}`,
-                  body: `Match time expired for ${customerName}. Collect payment or extend now!`,
-                  table_id: String(s.table_id),
-                  table_name: tableName,
-                  type: "session_end",
-                  timestamp: Date.now(),
-                  read: false,
-                },
-                true
-              );
+                triggerFloorAlert(
+                  {
+                    id: `time-up-alarm-${sessId}`,
+                    title: `⏰ TIME UP: ${tableName}`,
+                    body: `Match time expired for ${customerName}. Collect payment or extend now!`,
+                    table_id: String(s.table_id),
+                    table_name: tableName,
+                    type: "session_end",
+                    timestamp: Date.now(),
+                    read: false,
+                  },
+                  true
+                );
+              }
             }
           }
         }
       } catch (err) {
-        // Silent catch
+        // Silent catch for network hiccups
       }
     };
 
     checkLiveTursoEvents();
-    // Ultra-fast 1.2s poll for instantaneous cross-phone reaction
+    // 1.2s poll for instantaneous cross-phone reaction
     const interval = setInterval(checkLiveTursoEvents, 1200);
 
     return () => {
       isCancelled = true;
       clearInterval(interval);
     };
-  }, [mounted, isOwner]);
+  }, [mounted, isOwner, user?.role, user?.username]);
 
   // BroadcastChannel & local window listeners for same-device instant response
   useEffect(() => {
@@ -217,11 +255,24 @@ export function NotificationListener() {
         bc = new BroadcastChannel("levelup_floor_sync");
         bc.onmessage = (event) => {
           if (event.data?.type === "TRIGGER_FLOOR_ALERT") {
-            triggerFloorAlert(event.data.notif, event.data.isTimeUp);
+            const notif = event.data.notif;
+            if (notif && !locallyStartedSessionIdsRef.current.has(notif.table_id)) {
+              triggerFloorAlert(notif, event.data.isTimeUp);
+            }
           }
         };
       }
     } catch {}
+
+    const handleLocalSessionStarted = (e: Event) => {
+      const customEvent = e as CustomEvent<{ sessionId: string }>;
+      if (customEvent.detail?.sessionId) {
+        const id = customEvent.detail.sessionId;
+        locallyStartedSessionIdsRef.current.add(id);
+        alertedSessionIdsRef.current.add(id);
+        saveAlertedId(id);
+      }
+    };
 
     const handleLocalTrigger = (e: Event) => {
       const customEvent = e as CustomEvent<FloorNotification>;
@@ -229,10 +280,13 @@ export function NotificationListener() {
         triggerFloorAlert(customEvent.detail);
       }
     };
+
+    window.addEventListener("levelup_local_session_started", handleLocalSessionStarted);
     window.addEventListener("levelup_trigger_notif", handleLocalTrigger);
 
     return () => {
       if (bc) bc.close();
+      window.removeEventListener("levelup_local_session_started", handleLocalSessionStarted);
       window.removeEventListener("levelup_trigger_notif", handleLocalTrigger);
     };
   }, [mounted]);
@@ -382,39 +436,41 @@ export function NotificationListener() {
         </div>
       )}
 
-      {/* 2. Top-Right Telemetry Alert Banner */}
+      {/* 2. Mobile-Optimized Telemetry Alert Banner (Centered across all screens 320px-430px) */}
       {activeToast && (
         <aside
           aria-label="Floor Alert Notification"
           role="status"
           style={{
             position: "fixed",
-            top: 14,
-            right: 14,
-            left: "auto",
-            maxWidth: "calc(100vw - 28px)",
-            width: 360,
-            zIndex: 99999,
+            top: "max(12px, env(safe-area-inset-top, 12px))",
+            left: 12,
+            right: 12,
+            maxWidth: 440,
+            margin: "0 auto",
+            zIndex: 999999,
             display: "flex",
             alignItems: "center",
             gap: 12,
             padding: "12px 14px",
-            background: isAlarm ? "rgba(35, 23, 14, 0.96)" : "var(--bg-surface-raised)",
-            border: isAlarm ? "1.5px solid rgba(245, 158, 11, 0.7)" : "1px solid var(--border-default)",
-            borderRadius: "var(--r-md)",
+            background: isAlarm ? "rgba(32, 18, 10, 0.98)" : "rgba(12, 22, 18, 0.98)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+            border: isAlarm ? "1.5px solid rgba(245, 158, 11, 0.85)" : "1.5px solid rgba(16, 185, 129, 0.85)",
+            borderRadius: 14,
             boxShadow: isAlarm
-              ? "0 0 24px rgba(245, 158, 11, 0.35), 0 12px 32px rgba(0, 0, 0, 0.7)"
-              : "var(--shadow-lg)",
-            animation: "slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+              ? "0 0 28px rgba(245, 158, 11, 0.35), 0 14px 36px rgba(0, 0, 0, 0.9)"
+              : "0 0 28px rgba(16, 185, 129, 0.3), 0 14px 36px rgba(0, 0, 0, 0.9)",
+            animation: "slideInDown 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
           <div
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: "var(--r-xs)",
-              background: isAlarm ? "rgba(245, 158, 11, 0.18)" : "rgba(16, 185, 129, 0.12)",
-              border: isAlarm ? "1px solid rgba(245, 158, 11, 0.4)" : "1px solid rgba(16, 185, 129, 0.3)",
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: isAlarm ? "rgba(245, 158, 11, 0.2)" : "rgba(16, 185, 129, 0.18)",
+              border: isAlarm ? "1px solid rgba(245, 158, 11, 0.5)" : "1px solid rgba(16, 185, 129, 0.4)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -422,23 +478,28 @@ export function NotificationListener() {
               flexShrink: 0,
             }}
           >
-            {isAlarm ? <AlertCircle size={18} /> : <CircleDot size={18} />}
+            {isAlarm ? <AlertCircle size={20} /> : <CircleDot size={20} />}
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 13.5,
                 fontWeight: 700,
                 color: isAlarm ? "var(--amber)" : "var(--text-primary)",
                 lineHeight: 1.3,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              {activeToast.title}
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {activeToast.title}
+              </span>
             </div>
             <div
               style={{
-                fontSize: 11.5,
+                fontSize: 12,
                 color: "var(--text-secondary)",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
@@ -458,16 +519,22 @@ export function NotificationListener() {
                   setActiveToast(null);
                 }}
                 style={{
-                  all: "unset",
+                  background: isAlarm ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.15)",
+                  border: isAlarm ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(16, 185, 129, 0.3)",
+                  borderRadius: 6,
                   cursor: "pointer",
-                  padding: "5px",
+                  padding: "6px 8px",
                   color: isAlarm ? "var(--amber)" : "var(--accent-primary)",
                   display: "flex",
                   alignItems: "center",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  gap: 4,
                 }}
                 title="View Table"
               >
-                <ArrowUpRight size={15} />
+                <span>View</span>
+                <ArrowUpRight size={13} />
               </button>
             )}
             <button
@@ -475,14 +542,14 @@ export function NotificationListener() {
               style={{
                 all: "unset",
                 cursor: "pointer",
-                padding: "5px",
+                padding: "6px",
                 color: "var(--text-muted)",
                 display: "flex",
                 alignItems: "center",
               }}
               title="Dismiss"
             >
-              <X size={15} />
+              <X size={16} />
             </button>
           </div>
         </aside>

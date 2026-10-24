@@ -1572,3 +1572,15 @@ h1, h2, h3, h4, h5, h6 {
 .table-ending-soon {
   border-color: rgba(245, 158, 11, 0.6) !important;
 }
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+

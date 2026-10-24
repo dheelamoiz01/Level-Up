@@ -96,6 +96,13 @@ export function StartSessionModal({
     });
 
     if (res.success) {
+      if (typeof window !== "undefined" && res.sessionId) {
+        window.dispatchEvent(
+          new CustomEvent("levelup_local_session_started", {
+            detail: { sessionId: res.sessionId },
+          })
+        );
+      }
       onSessionStarted();
       onClose();
     } else {
